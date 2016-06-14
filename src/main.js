@@ -1,13 +1,46 @@
 import Vue from 'vue';
+import Router from 'vue-router';
+import Resource from 'vue-resource';
+
 import App from './views/App';
+import Tasklist from './views/Tasklist';
+import SampleList from './views/SampleList'
+import Newtask from './views/Newtask';
 
 
+Vue.use(Router);
+Vue.use(Resource);
+Vue.config.debug = true;
 
+var router = new Router({})
 
-new Vue({
-  el: 'body',
-  components: { App }
+router.map({
+	'/':{
+		component:App
+	},
+	'/taskList':{
+		name:'taskList',
+		component:Tasklist
+	},
+	// '/taskList/:id/':{
+
+	// },
+	'/newTask':{
+		name:'newTask',
+		component:Newtask
+	},
+	'/sampleList':{
+		name:'sampleList',
+		component:SampleList
+	}
 })
+
+router.start(App,'app');
+
+// new Vue({
+//   el: 'body',
+//   components: { App }
+// })
 
 
 // import Router from 'vue-router'

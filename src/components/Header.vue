@@ -15,7 +15,7 @@ export default {
 .header{
 	width:100%;
 	height: 60px;
-	background-color: rgb(96,142,202);
+	background-color: rgb(42,162,230);
 }
 #logo{
 	color: white;
