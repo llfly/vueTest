@@ -10,7 +10,7 @@
 				<label>任务类型</label>
 				<input type="radio" id="one" value="One" v-model="picked">
 				<label for="one">普通评测</label>
-				<input type="radio" id="two" value="One" v-model="picked">
+				<input type="radio" id="two" value="Two" v-model="picked">
 				<label for="one">匹配校验</label>
 			</div>
 			<div class="form-group">
@@ -28,7 +28,7 @@
 	export default{
 		data(){
 			return{
-
+				//picked:
 			}
 		},
 		methods:{

@@ -6,6 +6,8 @@ import App from './views/App';
 import Tasklist from './views/Tasklist';
 import SampleList from './views/SampleList'
 import Newtask from './views/Newtask';
+import Artificial from './views/Artificial';
+import MatchList from './views/MatchList';
 
 
 Vue.use(Router);
@@ -16,15 +18,12 @@ var router = new Router({})
 
 router.map({
 	'/':{
-		component:App
+		component:Tasklist
 	},
 	'/taskList':{
 		name:'taskList',
 		component:Tasklist
 	},
-	// '/taskList/:id/':{
-
-	// },
 	'/newTask':{
 		name:'newTask',
 		component:Newtask
@@ -32,6 +31,14 @@ router.map({
 	'/sampleList':{
 		name:'sampleList',
 		component:SampleList
+	},
+	'/artificial/:id':{
+		name:'artificial',
+		component:Artificial
+	},
+	'/matchlist/:id':{
+		name:'matchList',
+		component:MatchList
 	}
 })
 

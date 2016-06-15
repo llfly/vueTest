@@ -4,16 +4,12 @@
 		<input type="text" @click="showCalendar" v-model="value" placeholder="请输入日期">
     	<calendar :show.sync="show" :value.sync="value" :x="x" :y="y" :begin="begin" :end="end" :range="range"></calendar>
     	<span>任务类型</span>
-    	<select>
-    		<option selected>全部</option>
-    		<option>匹配校验</option>
-    		<option>普通评测</option>
+    	<select v-model="typeSele">
+    		<option v-for="item in typesList" :value="item.text">{{item.text}}</option>
 		</select>
     	<span>任务进度</span>
-    	<select>
-    		<option selected>全部</option>
-    		<option>进行中</option>
-    		<option>已结束</option>
+    	<select v-model="taskProSele">
+    		<option v-for="item in taskProList" :value="item.text">{{item.text}}</option>
 		</select>
     	<button type="button">搜索</button>
 	</div>
@@ -39,14 +35,18 @@
 					<td><input type="checkbox"></td>
 					<td>{{item.index}}</td>
 					<td>{{item.type}}</td>
-					<td>121212</td>
-					<td>121212</td>
-					<td>121212</td>
-					<td>121212</td>
-					<td>121212</td>
-					<td>121212</td>
-					<td>121212</td>
-					<td>121212</td>
+					<td>{{item.name}}</td>
+					<td>{{item.schedule}}</td>
+					<td>{{item.sampleSize}}</td>
+					<td>{{item.unassess}}</td>
+					<td>{{item.createTime}}</td>
+					<td>{{item.lastAssessTime}}</td>
+					<td>{{item.owner}}</td>
+					<td>
+						<span v-if="item.type == '匹配校验'" v-link="{name:'artificial',params:{id:20}}">查看</span>
+						<span v-else v-link="{name:'matchList',params:{id:20}}">查看</span>
+						&nbsp;<span @click="delItem(item)">删除</span>
+					</td>
 				</tr>
 			</tbody>
 		</table>
@@ -69,12 +69,61 @@ module.exports = {
             y:0,
             range:true,//是否多选
 
+
             items:[{
             	index:1,
             	type:'匹配校验',
+            	name:'5月25日数据更新',
+            	schedule:'进行中',
+            	sampleSize:100,
+            	unassess:50,
+            	createTime:'2016.05.25 18:25:28',
+            	lastAssessTime:'2016.05.25 18:25:28',
+            	owner:'FengLuYi'//=='匹配校验'
+            	//options:'<a href="./#Artificial">查看</a> <a href="">删除</a>'
+            },{
+            	index:2,
+            	type:'普通评测',
+            	name:'5月25日数据更新',
+            	schedule:'进行中',
+            	sampleSize:2,
+            	unassess:50,
+            	createTime:'2016.05.25 18:25:28',
+            	lastAssessTime:'2016.05.25 18:25:28',
+            	owner:'FengLuYi'//=='匹配校验'
+            	//options:'<a href="./#Artificial">查看</a> <a href="">删除</a>'
+            }],
+            //任务类型
+            typeSele:'全部',
+            typesList:[{
+            	text:'全部',
+            },{
+            	text:'匹配校验',
 
+            },{
+            	text:'普通评测',
+            }],
+
+            //任务进度
+            taskProSele:'全部',
+            taskProList:[{
+            	text:'全部',
+            },{
+            	text:'进行中',
+            },{
+            	text:'已结束',
             }]
+
         }
+    },
+    ready(){
+  //   	this.$http.get('book.json', function(data) {
+		// 	this.$set('books', data);
+		// }).error(function(data, status, request) {
+		// 	console.log('fail' + status + "," + request);
+		// })
+		// this.$http.post(url,postdata,function callback）
+		// Vue.http.options.emulateJSON = true;
     },
     methods:{
         showCalendar(e){
@@ -91,6 +140,9 @@ module.exports = {
             setTimeout(function(){
                 document.addEventListener('click',bindHide,false);
             },500);
+        },
+        delItem(item){
+        	this.items.$remove(item);
         }
     },
     components:{
@@ -124,5 +176,10 @@ module.exports = {
 	.taskSearchShow td{
 		border:1px solid #999;
 		text-align: center;
+	}
+	.taskSearchShow td span{
+		cursor: pointer;
+		color:blue;
+		text-decoration: none;
 	}
 </style>

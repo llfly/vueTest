@@ -1,9 +1,9 @@
 <template>
 	<div class="leftCtrl clearfix">
 		<ul class="leftList">
-			<li v-link="'/taskList'">任务列表</li>
-			<li v-link="'/sampleList'">样本库列表</li>
-			<li v-link="'/newTask'">新建任务</li>
+			<li v-link="{path:'/taskList', activeClass: 'custom-active-class'}">任务列表</li>
+			<li v-link="{path:'/sampleList', activeClass: 'custom-active-class'}">样本库列表</li>
+			<li v-link="{path:'/newTask', activeClass: 'custom-active-class'}">新建任务</li>
 		</ul>
 	</div>
 </template>
@@ -41,9 +41,12 @@
 	.leftList li{
 		border-bottom: 1px solid #ccc;
 		cursor: pointer;
-		color:rgb(42,162,230);
 	}
 	.leftList li:hover{
 		background-color: #ccc;
+	}
+	.custom-active-class {
+		color:white;
+    	background-color: rgb(42,162,230);
 	}
 </style>

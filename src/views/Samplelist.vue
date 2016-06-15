@@ -4,39 +4,20 @@
 		<input type="text" @click="showCalendar" v-model="value" placeholder="请输入日期">
     	<calendar :show.sync="show" :value.sync="value" :x="x" :y="y" :begin="begin" :end="end" :range="range"></calendar>
     	<span>类型</span>
-    	<select>
-    		<option selected>全部</option>
-    		<option>VIPcase</option>
-    		<option>重点case</option>
-    		<option>一般case</option>
+    	<select v-model="typesSele">
+    		<option v-for="item in typesList" :value="item.text">{{item.text}}</option>
 		</select>
     	<span>评价</span>
-    	<select>
-    		<option selected>全部</option>
-    		<option>合理</option>
-    		<option>不合理</option>
-    		<option>无评价</option>
+    	<select v-model="evalsSele">
+			<option v-for="item in evalsList" :value="item.text">{{item.text}}</option>
 		</select>
 		<span>标签</span>
-		<select options="tagOptions">
-<!--     		<option selected>未定</option>
-    		<option>最佳</option>
-    		<option>非最佳</option> -->
-		</select>
-
-		<select v-model="selected">
-			<option v-for="yx in YX" :value="yx.text">{{yx.text}}</option>
-		</select>
 		<select>
-			<option v-for="zy in selection" :value="zy.text" :selected="$index == 0 ? true : false">{{zy.text}}</option>
+			<option v-for="item in tagsList" :value="item.text" :selected="$index == 0 ? true : false">{{item.text}}</option>
 		</select>
-
 		<span>最佳方案</span>
-		<select>
-    		<option selected>全部</option>
-    		<option>单条最佳</option>
-    		<option>多条最佳</option>
-    		<option>无最佳</option>
+		<select v-model="bestDecSele">
+    		<option v-for="item in bestDecList" :value="item.text">{{item.text}}</option>
 		</select>
     	<button type="button">搜索</button>
 	</div>
@@ -81,7 +62,7 @@
     data() {
 
 
-    	
+
         return {
             show:false,
             type:"date", //date datetime
@@ -92,32 +73,82 @@
             y:0,
             range:true,//是否多选
 
+            //类型 types
+            typesSele:'全部',
+            typesList:[{
+            	text:'全部',
+            },{
+            	text:'VIPcase',
+
+            },{
+            	text:'重点case',
+            },{
+            	text:'一般case'
+            }],
+            //评价 evals	标签 tags
+            evalsSele:'全部',
+            evalsList:[{
+				text: '全部',
+				tags: [
+						{text: '全部'},
+						{text: '未定'},
+						{text: '最佳'},
+						{text:'非最佳'},
+						{text:'绕路'},
+						{text:'畸形'},
+						{text:'不避堵'},
+						{text:'小路多'},
+						{text:'其他'}
+					]
+				},
+				{
+					text: '合理',
+					tags: [
+						{text: '未定'},
+						{text: '最佳'},
+						{text: "非最佳"}
+					]
+				},
+				{
+					text:'不合理',
+					tags:[
+						{text:'绕路'},
+						{text:'畸形'},
+						{text:'不避堵'},
+						{text:'小路多'},
+						{text:'其他'}
+					]
+				},
+				{
+					text:'无评价',
+					tags:[
+						{text:'全部'}
+					]
+				}
+			],
+
+            //最佳方案 bestDec
+            bestDecSele:'全部',
+            bestDecList:[{
+            	text:'全部',
+            },{
+            	text:'单条最佳'
+            },{
+            	text:'多条最佳'
+            },{
+            	text:'无最佳'
+            }],
+
+            //table
             items:[{
             	index:1,
             	type:'匹配校验',
 
             }],
-            tagOptions:[{text: '未定', value: 'a' },
-            {text:'最佳',value:'b'},
-            {text:'非最佳',value:'c'}
+            	tagOptions:[{text: '未定', value: 'a' },
+            	{text:'最佳',value:'b'},
+            	{text:'非最佳',value:'c'}
             ],
-
-            selected:'计信院',
-            YX: [{
-				text: '计信院',
-				ZY: [{
-					text: '软件工程'},
-					{text: '计算机科学与技术'},
-					{text: "信息安全"}
-					]
-				},
-				{
-				text: '商学院',
-				ZY: [{text: '旅游管理'},
-				{text: '工商管理'},
-				{text: "行政管理"}
-				]
-			}, ]
         }
     },
     methods:{
@@ -141,15 +172,15 @@
         calendar
     },
     computed: {
-    selection: {
-      get: function() {
-        var that = this;
-        return this.YX.filter(function(item) {
-          return item.text == that.selected;
-        })[0].ZY;
-      }
-    }
-  }
+    	tagsList: {
+      		get: function() {
+        		let that = this;
+        		return this.evalsList.filter(function(item) {
+          			return item.text == that.evalsSele;
+        		})[0].tags;
+			}
+    	}
+  	}
 }
 </script>
 <style>
