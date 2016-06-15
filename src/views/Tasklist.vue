@@ -54,9 +54,13 @@
 	<div>
 		<input type="submit" value="批量删除">
 	</div>
+    <cccc></cccc>
 </template>
 <script>
-import calendar from '../components/calendar.vue'
+
+import calendar from '../components/calendar';
+import cccc from '../components/DeleteConfirm';
+
 module.exports = {
     data() {
         return {
@@ -146,7 +150,8 @@ module.exports = {
         }
     },
     components:{
-        calendar
+        calendar,
+        cccc
     }
 }
 </script>

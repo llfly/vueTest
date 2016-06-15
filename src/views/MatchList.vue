@@ -104,6 +104,8 @@ module.exports = {
             //是否匹配
             matchSele:'全部',
             matchList:[{
+                text:'全部'
+            },{
                 text:'匹配',
             },{
                 text:'不匹配',
