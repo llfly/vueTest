@@ -8,6 +8,7 @@ import SampleList from './views/SampleList'
 import Newtask from './views/Newtask';
 import Artificial from './views/Artificial';
 import MatchList from './views/MatchList';
+import Mainmap from './views/Mainmap';
 
 
 Vue.use(Router);
@@ -39,6 +40,10 @@ router.map({
 	'/matchlist/:id':{
 		name:'matchList',
 		component:MatchList
+	},
+	'/mainmap/:id':{
+		name:'mainmap',
+		component:Mainmap
 	}
 })
 

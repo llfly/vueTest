@@ -1,13 +1,21 @@
 <template>
-	<div class="deleteConfirm">
-		<div class="title">删除提示</div>
-		<div class="describe">确定要删除么？删除后将无法恢复</div>
-		<button @click="dele(false)">取消</button>
-		<button @click="dele(true)">确定</button>
+	<div id="delBg">
+		<div class="deleteConfirm">
+			<div class="title">删除提示</div>
+			<div class="describe">确定要删除么？删除后将无法恢复</div>
+			<button @click="dele(false)">取消</button>
+			<button @click="dele(true)">确定</button>
+		</div>
 	</div>
 </template>
 <script>
 module.exports = {
+		props: {
+			curItem: {
+				type: Object,
+				default:Object
+			},
+    	},
 		data(){
 			return {
 				del:false
@@ -15,21 +23,33 @@ module.exports = {
 		},
 		methods:{
 			dele(bool) {
-				//console.log(bool,this);
 				this.del = bool;
+				this.$dispatch("del", this.del,this.curItem);
 			}
 		}
 	}
 </script>
 <style scope>
+	#delBg{
+		position: absolute;
+		top:0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0,0,0,0.5);
+		z-index: 1;
+	}
 	.deleteConfirm{
-		border:1px solid red;
+		background-color: #fff;
 		width:300px;
 		height: 200px;
 		position: absolute;
-		top:0;bottom:0;left:0;right:0;
+		top:0;
+		bottom:0;
+		left:0;
+		right:0;
 		margin: auto;
-		z-index: 1;
+		z-index: 2;
 		text-align: center;
 	}
 	.title{

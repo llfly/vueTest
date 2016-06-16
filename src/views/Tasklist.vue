@@ -54,12 +54,12 @@
 	<div>
 		<input type="submit" value="批量删除">
 	</div>
-    <cccc></cccc>
+    <confirm v-show="delShow" :cur-item='curItem'></confirm>
 </template>
 <script>
 
 import calendar from '../components/calendar';
-import cccc from '../components/DeleteConfirm';
+import confirm from '../components/DeleteConfirm';
 
 module.exports = {
     data() {
@@ -116,8 +116,12 @@ module.exports = {
             	text:'进行中',
             },{
             	text:'已结束',
-            }]
+            }],
 
+            //删除面板显示隐藏
+            delShow:false,
+            //传递当前删除项给子组件
+           	curItem:null,
         }
     },
     ready(){
@@ -146,12 +150,20 @@ module.exports = {
             },500);
         },
         delItem(item){
-        	this.items.$remove(item);
+        	this.delShow = true;
+        	this.curItem = item;
         }
     },
     components:{
         calendar,
-        cccc
+        confirm
+    },
+    events:{
+    	del(bool,item){
+    		this.delShow = false;
+    		if(bool)
+        		this.items.$remove(item);
+    	}
     }
 }
 </script>

@@ -48,7 +48,10 @@
 					<td>{{item.state}}</td>
 					<td>{{item.stateTime}}</td>
 					<td>{{item.owner}}</td>
-					<td><a href="#">查看</a>&nbsp;<a href="#">删除</a></td>
+					<td>
+						<span v-link="{name:'mainmap',params:{id:20}}">查看</span>
+						&nbsp;<span @click="delItem(item)">删除</span>
+					</td>
 				</tr>
 			</tbody>
 		</table>
@@ -56,6 +59,10 @@
 </template>
 <script>
 import calendar from '../components/calendar.vue'
+
+
+
+
 module.exports = {
     data() {
         return {
@@ -131,6 +138,9 @@ module.exports = {
             setTimeout(function(){
                 document.addEventListener('click',bindHide,false);
             },500);
+        },
+        delItem(item){
+
         }
     },
     components:{
