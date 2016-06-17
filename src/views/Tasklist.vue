@@ -60,6 +60,7 @@
 
 import calendar from '../components/calendar';
 import confirm from '../components/DeleteConfirm';
+import store from '../store';
 
 module.exports = {
     data() {
@@ -125,13 +126,15 @@ module.exports = {
         }
     },
     ready(){
-  //   	this.$http.get('book.json', function(data) {
-		// 	this.$set('books', data);
+  //   	this.$http.get('http://10.136.21.21:8090/test/test=true&action=getcase&page=1', function(data) {
+  //           console.log(data);
+		// 	//this.$set('books', data);
 		// }).error(function(data, status, request) {
 		// 	console.log('fail' + status + "," + request);
 		// })
-		// this.$http.post(url,postdata,function callback）
-		// Vue.http.options.emulateJSON = true;
+		//this.$http.post(url,postdata,function callback）
+		//Vue.http.options.emulateJSON = true;
+        this.getData();
     },
     methods:{
         showCalendar(e){
@@ -152,6 +155,18 @@ module.exports = {
         delItem(item){
         	this.delShow = true;
         	this.curItem = item;
+        },
+        getData(options){
+            const _self = this;
+            store.fetchItemsByTag('').then(items => {
+                //_self.$refs.listitem.items = items || []
+                console.log('done');
+            setTimeout(function(){
+                _self.showLoad = false
+            }, 1000)
+        }).then(err => {
+            _self.showFail = true
+        })
         }
     },
     components:{

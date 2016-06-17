@@ -63,7 +63,7 @@
 		}
 	}
 </script>
-<style scope>
+<style>
 	.assessBox{
 		border:1px solid red;
 		background-color: #fff;

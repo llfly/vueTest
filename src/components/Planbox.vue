@@ -12,14 +12,19 @@
 			<span>{{roadCondi}}</span>
 		</div>
 		<div class="plan-opt">
-			<span>设为最佳</span>
-			<span>隐藏</span>
+			<span v-show="reBest">设为最佳</span>
+			<span v-show="ishide">隐藏</span>
 		</div>
 		<span class="plan-btn">评价</span>
 	</div>
 </template>
 <script>
 	module.exports = {
+		//props:['rmBest','ishide'],
+		props(){
+			rmBest:true;
+			ishide:true;
+		},
 		data(){
 			return{
 				origin:[{
@@ -71,7 +76,7 @@
 	}
 	.plan-box .plan-btn{
 		background-color: rgb(0,153,255);
-		padding: 5px;
+		padding: 3px 8px;
 		border-radius: 5px;
 		display:inline-block;
 		position: absolute;
@@ -85,5 +90,8 @@
 		top:3px;
 		right: 3px;
 		color:#666;
+	}
+	.plan-box .plan-opt span{
+		cursor: pointer;
 	}
 </style>
