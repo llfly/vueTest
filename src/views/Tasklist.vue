@@ -11,7 +11,7 @@
     	<select v-model="taskProSele">
     		<option v-for="item in taskProList" :value="item.text">{{item.text}}</option>
 		</select>
-    	<button type="button">搜索</button>
+    	<button type="button" @click="getData()">搜索</button>
 	</div>
 	<div>
 		<table class="taskSearchShow">
@@ -32,72 +32,52 @@
 			</thead>
 			<tbody>
 				<tr v-for='item in items'>
-					<td><input type="checkbox"></td>
-					<td>{{item.index}}</td>
+					<td><input type="checkbox" v-model="checkedDel" value="{{item.taskid}}"></td>
+					<td>{{item.taskid}}</td>
 					<td>{{item.type}}</td>
 					<td>{{item.name}}</td>
-					<td>{{item.schedule}}</td>
-					<td>{{item.sampleSize}}</td>
-					<td>{{item.unassess}}</td>
-					<td>{{item.createTime}}</td>
-					<td>{{item.lastAssessTime}}</td>
-					<td>{{item.owner}}</td>
+					<td>{{item.pharse}}</td>
+					<td>{{item.totalnum}}</td>
+					<td>{{item.restnum}}</td>
+					<td>{{item.ctime}}</td>
+					<td>{{item.etime}}</td>
+					<td>{{item.own}}</td>
 					<td>
 						<span v-if="item.type == '匹配校验'" v-link="{name:'artificial',params:{id:20}}">查看</span>
 						<span v-else v-link="{name:'matchList',params:{id:20}}">查看</span>
-						&nbsp;<span @click="delItem(item)">删除</span>
+						&nbsp;<span @click="delItem(item.taskid)">删除</span>
 					</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
 	<div>
-		<input type="submit" value="批量删除">
+		<input type="submit" value="批量删除" @click="delItem()">
+        <Turnpage></Turnpage>
 	</div>
-    <confirm v-show="delShow" :cur-item='curItem'></confirm>
+    <confirm v-show="delShow" :cur-item='checkedDel'></confirm>
 </template>
 <script>
 
 import calendar from '../components/calendar';
 import confirm from '../components/DeleteConfirm';
-import store from '../store';
+import Turnpage from '../components/TurnPage.vue';
+import API_ROOT from '../store/resources.js';
 
 module.exports = {
     data() {
         return {
             show:false,
             type:"date", //date datetime
-            // value:"2015-12-11",
-            // begin:"2015-12-20",
-            // end:"2015-12-25",
+            value:"",
+            begin:"",
+            end:"",
             x:0,
             y:0,
             range:true,//是否多选
 
 
-            items:[{
-            	index:1,
-            	type:'匹配校验',
-            	name:'5月25日数据更新',
-            	schedule:'进行中',
-            	sampleSize:100,
-            	unassess:50,
-            	createTime:'2016.05.25 18:25:28',
-            	lastAssessTime:'2016.05.25 18:25:28',
-            	owner:'FengLuYi'//=='匹配校验'
-            	//options:'<a href="./#Artificial">查看</a> <a href="">删除</a>'
-            },{
-            	index:2,
-            	type:'普通评测',
-            	name:'5月25日数据更新',
-            	schedule:'进行中',
-            	sampleSize:2,
-            	unassess:50,
-            	createTime:'2016.05.25 18:25:28',
-            	lastAssessTime:'2016.05.25 18:25:28',
-            	owner:'FengLuYi'//=='匹配校验'
-            	//options:'<a href="./#Artificial">查看</a> <a href="">删除</a>'
-            }],
+            //items:[],
             //任务类型
             typeSele:'全部',
             typesList:[{
@@ -119,22 +99,20 @@ module.exports = {
             	text:'已结束',
             }],
 
+            items:[],
             //删除面板显示隐藏
             delShow:false,
             //传递当前删除项给子组件
-           	curItem:null,
+            //要删除的列表
+            checkedDel:[],
+            page:1,
         }
     },
     ready(){
-  //   	this.$http.get('http://10.136.21.21:8090/test/test=true&action=getcase&page=1', function(data) {
-  //           console.log(data);
-		// 	//this.$set('books', data);
-		// }).error(function(data, status, request) {
-		// 	console.log('fail' + status + "," + request);
-		// })
-		//this.$http.post(url,postdata,function callback）
-		//Vue.http.options.emulateJSON = true;
+		// this.$http.post(url,postdata,function callback）
+		// Vue.http.options.emulateJSON = true;
         this.getData();
+
     },
     methods:{
         showCalendar(e){
@@ -152,32 +130,78 @@ module.exports = {
                 document.addEventListener('click',bindHide,false);
             },500);
         },
-        delItem(item){
-        	this.delShow = true;
-        	this.curItem = item;
+        getData(){
+            //先清空列表
+            this.items = [];
+            var urlArr = [API_ROOT];
+            urlArr.push('action=gettask');
+            if(this.begin){
+                urlArr.push('ctime='+ this.begin);
+            }
+            if(this.typeSele){
+                urlArr.push('type='+ this.typeSele);
+            }
+            if(this.taskProSele){
+                urlArr.push('pharse=' + this.taskProSele);
+            }
+            if(this.page){
+                urlArr.push('page=' + this.page);
+            }
+            var url = urlArr.join('&');
+            console.log(url);
+            this.$http.get(url, function(data) {
+                this.turnData(data);
+            }).catch(function(data, status, request) {
+                console.log('fail' + status + "," + request);
+            });
         },
-        getData(options){
-            const _self = this;
-            store.fetchItemsByTag('').then(items => {
-                //_self.$refs.listitem.items = items || []
-                console.log('done');
-            setTimeout(function(){
-                _self.showLoad = false
-            }, 1000)
-        }).then(err => {
-            _self.showFail = true
-        })
+        turnData(data){
+            data = data.tasks;
+            //清空数据
+            for(var i = 0,len = data.length;i<len;i++){
+                this.items.push({
+                    taskid:data[i].taskid,
+                    type:data[i].type,
+                    name:data[i].name,
+                    pharse:data[i].pharse,
+                    totalnum:data[i].totalnum,
+                    restnum:data[i].restnum,
+                    ctime:data[i].ctime,
+                    etime:data[i].etime,
+                    own:data[i].own
+                })
+            }
+        },
+        //删除相关
+        delItem(item){
+            if(item && this.checkedDel.indexOf(item.toString())==-1)
+                this.checkedDel.push(item);
+            if(this.checkedDel.length)
+                this.delShow = true;
         }
     },
     components:{
         calendar,
-        confirm
+        confirm,
+        Turnpage
     },
     events:{
     	del(bool,item){
     		this.delShow = false;
-    		if(bool)
-        		this.items.$remove(item);
+            var that = this;
+            if(bool){
+                for(var i=0,len = this.checkedDel.length;i<len;i++){
+                    this.items.$remove(this.items.filter(function(item){return item.taskid == that.checkedDel[i];})[0]);
+                };
+                //与后台交互，清空要删除的数组
+                var url = API_ROOT + '&action=deltask' + '&user=xxx' + '&taskid='+this.checkedDel.join(',');
+                this.$http.get(url,function(data){
+
+                }).catch(function(data,status,request){
+                    console.log('fail' + status + "," + request);
+                });
+                this.checkedDel = [];
+            }
     	}
     }
 }

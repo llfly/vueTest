@@ -12,9 +12,12 @@
 module.exports = {
 		props: {
 			curItem: {
-				type: Object,
-				default:Object
+				type: Array,
+				default:Array
 			},
+			cbName:{
+				type:String
+			}
     	},
 		data(){
 			return {
@@ -24,7 +27,7 @@ module.exports = {
 		methods:{
 			dele(bool) {
 				this.del = bool;
-				this.$dispatch("del", this.del,this.curItem);
+				this.$dispatch("del", this.del,this.curItem,this.cbName);
 			}
 		}
 	}
