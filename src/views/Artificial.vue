@@ -1,7 +1,7 @@
 <template>
 	<div class="taskSearchTool">
 		<select v-model="timeTypeSele">
-			<option v-for="item in timeTypeList" :value="item.text">{{item.text}}</option>
+			<option v-for="item in timeTypeList" :value="item.value">{{item.text}}</option>
 		</select>
 		<input type="text" @click="showCalendar" v-model="value" placeholder="请输入日期">
     	<calendar :show.sync="show" :value.sync="value" :x="x" :y="y" :begin="begin" :end="end" :range="range"></calendar>
@@ -14,8 +14,8 @@
     		<option v-for="item in EvalList" :value="item.text">{{item.text}}</option>
 		</select>
 		<span>评价人</span>
-		<input type="text">
-    	<button type="button">搜索</button>
+		<input type="text" v-model="own">
+    	<button type="button" @click="getData()">搜索</button>
 	</div>
 	<div>
 		<table class="taskSearchShow">
@@ -47,20 +47,27 @@
 					<td>{{item.eval}}</td>
 					<td>{{item.state}}</td>
 					<td>{{item.stateTime}}</td>
-					<td>{{item.owner}}</td>
+					<td>{{item.own}}</td>
 					<td>
-						<span v-link="{name:'mainmap',params:{id:20}}">查看</span>
-						&nbsp;<span @click="delItem(item)">删除</span>
+						<span v-link="{name:'mainmap',params:{id:item.caseid}}">查看</span>
+						&nbsp;<span @click="delItem(item.caseid)">删除</span>
 					</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
+    <div class="bottomBtn">
+        <button type="button" @click="saveData()">提交样本库</button>
+        <span></span>
+        <Turnpage :all.sync="all" :cur.sync="page"></Turnpage>
+    </div>
+    <confirm v-show="delShow" :cur-item='checkedDel'></confirm>
 </template>
 <script>
 import calendar from '../components/calendar.vue'
-
-
+import confirm from '../components/DeleteConfirm';
+import Turnpage from '../components/TurnPage.vue';
+import API_ROOT from '../store/resources.js';
 
 
 module.exports = {
@@ -68,7 +75,7 @@ module.exports = {
         return {
             show:false,
             type:"date", //date datetime
-            // value:"2015-12-11",
+            value:"",
             // begin:"2015-12-20",
             // end:"2015-12-25",
             x:0,
@@ -77,11 +84,13 @@ module.exports = {
 
 
             //评测时间
-            timeTypeSele:'评价时间',
+            timeTypeSele:'etime',
             timeTypeList:[{
             	text:'评价时间',
+                value:'etime'
             },{
-            	text:'路况时间'
+            	text:'路况时间',
+                value:'lktime'
             }],
 
 
@@ -107,21 +116,18 @@ module.exports = {
             }],
 
             //评价人
+            own:'',
 
-            items:[{
-            	index:1,
-            	start:'启迪科技大厦D座',
-            	end:'798艺术区东门',
-            	time:'1小时30分钟',
-            	dist:'53.5公里',
-            	conditionTime:'2016.05.23 9:25:28',
-            	city:'北京',
-            	eval:'2016.05.25 18:25:28',
-            	state:'未评价',
-            	stateTime:'2016.05.25 18:25:28',
-            	owner:'FengLuYi'
-            }],
+            items:[],
+            //要删除的列表
+            delShow:false,
+            checkedDel:[],
+            page:1,
+            all:1,
         }
+    },
+    ready(){
+        this.getData();
     },
     methods:{
         showCalendar(e){
@@ -139,12 +145,99 @@ module.exports = {
                 document.addEventListener('click',bindHide,false);
             },500);
         },
+        getData(){
+            //先清空列表
+            this.items = [];
+            var urlArr = [API_ROOT];
+            urlArr.push('action=geteva');
+            urlArr.push('taskid='+this.$route.params.id);
+            // if(this.value){//etime,lktime  timeTypeSele
+            //     urlArr.push(this.timeTypeSele +'='+ this.value);
+            // }
+            if(this.stateSele){
+                urlArr.push('stat='+ this.stateSele);
+            }
+            if(this.EvalSele){
+                urlArr.push('eva=' + this.EvalSele);
+            }
+            if(this.own){
+                urlArr.push('own='+ this.own);
+            }
+            if(this.page){
+                urlArr.push('page=' + this.page);
+            }
+            var url = urlArr.join('&');
+            console.log(url);
+            this.$http.get(url, function(data) {
+                if(data.status == 'success')
+                this.turnData(data);
+            }).catch(function(data, status, request) {
+                console.log('fail' + status + "," + request);
+            });
+        },
+        turnData(data){
+            this.all = data.pagenum;
+            data = data.cases;
+            for(var i = 0,len = data.length;i<len;i++){
+                this.items.push({
+                    index:i+1,
+                    caseid:data[i].caseid,
+                    start:data[i].start,
+                    end:data[i].end,
+                    time:data[i].cost,
+                    dist:data[i].dis +'公里',
+                    conditionTime:data[i].lktime,
+                    city:data[i].city,
+                    eval:data[i].eva!='null'?data[i].eva:'',
+                    state:data[i].eva?'已评价':'未评价',
+                    stateTime:data[i].etime,
+                    own:data[i].own
+                })
+            }
+        },
+        saveData(){
+            var url = API_ROOT + '&action=submitevaall' + '&user=' + 'x' + '&taskid=' + this.$route.params.id;
+            console.log(url);
+            this.$http.get(url, function(data) {
+                console.log(data);
+            }).catch(function(data, status, request) {
+                console.log('fail' + status + "," + request);
+            });
+        },
         delItem(item){
-
+            if(item && this.checkedDel.indexOf(item.toString())==-1)
+                this.checkedDel.push(item);
+            if(this.checkedDel.length)
+                this.delShow = true;
         }
     },
     components:{
-        calendar
+        calendar,
+        confirm,
+        Turnpage
+    },
+    events:{
+        del(bool,item){
+            this.delShow = false;
+            var that = this;
+            if(bool){
+                for(var i=0,len = this.checkedDel.length;i<len;i++){
+                    this.items.$remove(this.items.filter(function(item){return item.caseid == that.checkedDel[i];})[0]);
+                };
+                //与后台交互，清空要删除的数组
+                var url = API_ROOT + '&action=deleva' + '&user=xxx' + '&caseid='+this.checkedDel.join(',') +'&taskid=' + this.$route.params.id;
+                this.$http.get(url,function(data){
+                    console.log(data);
+                }).catch(function(data,status,request){
+                    console.log('fail' + status + "," + request);
+                });
+                this.checkedDel = [];
+            }
+        },
+        pageClick(num){
+            this.page = num;
+            this.getData();
+        }
     }
 }
 </script>

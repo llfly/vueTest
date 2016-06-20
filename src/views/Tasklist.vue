@@ -33,7 +33,7 @@
 			<tbody>
 				<tr v-for='item in items'>
 					<td><input type="checkbox" v-model="checkedDel" value="{{item.taskid}}"></td>
-					<td>{{item.taskid}}</td>
+					<td>{{item.index}}</td>
 					<td>{{item.type}}</td>
 					<td>{{item.name}}</td>
 					<td>{{item.pharse}}</td>
@@ -43,17 +43,17 @@
 					<td>{{item.etime}}</td>
 					<td>{{item.own}}</td>
 					<td>
-						<span v-if="item.type == '匹配校验'" v-link="{name:'artificial',params:{id:20}}">查看</span>
-						<span v-else v-link="{name:'matchList',params:{id:20}}">查看</span>
+						<span v-if="item.type == '匹配校验'" v-link="{name:'matchList',params:{id:item.taskid}}">查看</span>
+						<span v-else v-link="{name:'artificial',params:{id:item.taskid}}">查看</span>
 						&nbsp;<span @click="delItem(item.taskid)">删除</span>
 					</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
-	<div>
+	<div class="bottomBtn">
 		<input type="submit" value="批量删除" @click="delItem()">
-        <Turnpage></Turnpage>
+        <Turnpage :all.sync="all" :cur.sync="page"></Turnpage>
 	</div>
     <confirm v-show="delShow" :cur-item='checkedDel'></confirm>
 </template>
@@ -68,7 +68,7 @@ module.exports = {
     data() {
         return {
             show:false,
-            type:"date", //date datetime
+            type:"datetime", //date datetime
             value:"",
             begin:"",
             end:"",
@@ -106,6 +106,7 @@ module.exports = {
             //要删除的列表
             checkedDel:[],
             page:1,
+            all:1,
         }
     },
     ready(){
@@ -135,9 +136,10 @@ module.exports = {
             this.items = [];
             var urlArr = [API_ROOT];
             urlArr.push('action=gettask');
-            if(this.begin){
-                urlArr.push('ctime='+ this.begin);
-            }
+            console.log(this.value);
+            // if(this.value){
+            //     urlArr.push('ctime='+ this.value);
+            // }
             if(this.typeSele){
                 urlArr.push('type='+ this.typeSele);
             }
@@ -150,16 +152,19 @@ module.exports = {
             var url = urlArr.join('&');
             console.log(url);
             this.$http.get(url, function(data) {
-                this.turnData(data);
+                if(data.status == "success")
+                    this.turnData(data);
             }).catch(function(data, status, request) {
                 console.log('fail' + status + "," + request);
             });
         },
         turnData(data){
+            this.all = data.pagenum;
             data = data.tasks;
             //清空数据
             for(var i = 0,len = data.length;i<len;i++){
                 this.items.push({
+                    index:i+1,
                     taskid:data[i].taskid,
                     type:data[i].type,
                     name:data[i].name,
@@ -196,13 +201,17 @@ module.exports = {
                 //与后台交互，清空要删除的数组
                 var url = API_ROOT + '&action=deltask' + '&user=xxx' + '&taskid='+this.checkedDel.join(',');
                 this.$http.get(url,function(data){
-
+                    console.log(data);
                 }).catch(function(data,status,request){
                     console.log('fail' + status + "," + request);
                 });
                 this.checkedDel = [];
             }
-    	}
+    	},
+        pageClick(num){
+            this.page = num;
+            this.getData();
+        }
     }
 }
 </script>
@@ -238,4 +247,11 @@ module.exports = {
 		color:blue;
 		text-decoration: none;
 	}
+    .bottomBtn{
+        border:1px solid rgb(215,215,215);
+        padding:10px;
+        margin-top:30px;
+        overflow:hidden;
+        *zoom:1;
+    }
 </style>

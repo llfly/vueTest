@@ -4,13 +4,13 @@
 		<div class="newtask-form">
 			<div class="form-group">
 				<label for="newTaskName">任务名称</label>
-				<input id="newTaskName" type="text" name="newTaskName"/>
+				<input id="newTaskName" type="text" name="newTaskName" v-model="newTaskName"/>
 			</div>
 			<div class="form-group">
 				<label>任务类型</label>
-				<input type="radio" id="one" value="One" v-model="picked">
+				<input type="radio" id="one" value="createeva" v-model="picked">
 				<label for="one">普通评测</label>
-				<input type="radio" id="two" value="Two" v-model="picked">
+				<input type="radio" id="two" value="creatematch" v-model="picked">
 				<label for="one">匹配校验</label>
 			</div>
 			<div class="form-group">
@@ -25,16 +25,27 @@
 	</div>
 </template>
 <script>
+import API_ROOT from '../store/resources.js';
+
 	export default{
 		data(){
 			return{
-				picked:''
+				newTaskName:'',
+				picked:'createeva',
 			}
 		},
 		methods:{
 			submitMethod(){
-				console.log(this);
-				let self = this;
+				var urlArr = [API_ROOT];
+				urlArr.push('action=' + this.picked);
+				urlArr.push('taskname=' + this.newTaskName);
+				urlArr.push('user=' + 'xxx');
+
+
+				var url = urlArr.join('&');
+				this.$http.post(url,postdata,function cb(){
+					
+				})
 			}
 		}
 	}

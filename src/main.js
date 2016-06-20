@@ -9,6 +9,7 @@ import Newtask from './views/Newtask';
 import Artificial from './views/Artificial';
 import MatchList from './views/MatchList';
 import Mainmap from './views/Mainmap';
+//import Login from './views/Login';
 
 
 Vue.use(Router);
@@ -21,6 +22,10 @@ router.map({
 	'/':{
 		component:Tasklist
 	},
+	// '/login':{
+	// 	name:'login',
+	// 	component:Login
+	// },
 	'/taskList':{
 		name:'taskList',
 		component:Tasklist

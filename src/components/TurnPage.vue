@@ -1,23 +1,31 @@
 <template>
-<div class="page-bar">
-    <ul>
-    	<li v-if="cur!=1"><a @click="cur--">上一页</a></li>
-    	<li v-for="index in indexs"  v-bind:class="{ active: cur == index}">
-    		<a @click="btnClick(index)">{{ index }}</a>
-    	</li>
-    	<li v-if="cur!=all"><a @click="cur++">下一页</a></li>
-    	<li><a>共<i>{{all}}</i>页</a></li>
-    </ul>
-</div>
+    <div class="page-bar">
+        <ul>
+            <li v-if="cur!=1"><a @click="cur--">上一页</a></li>
+             <li v-for="index in indexs"  v-bind:class="{ active: cur == index}">
+                <a @click="btnClick(index)">{{ index }}</a>
+            </li>
+            <li v-if="cur!=all"><a @click="cur++">下一页</a></li>
+            <li><a>共<i>{{all}}</i>页</a></li>
+            <li><a @click="btnClick(0)">全部</a></li>
+        </ul>
+    </div>
 </template>
 <script>
-	module.export = {
-		props: ['cur', 'all'],
-		data(){
-			return{
+	 module.exports = {
+        props:{
+            cur:{
+                type:Number,
+            },
+            all:{
+            	type:Number
+            }
+        },
+        data(){
+        	return{
 
-			}
-		},
+        	}
+        },
         computed: {
             indexs: function(){
               var left = 1
@@ -44,17 +52,20 @@
             return ar
            }
         },
-        methods: {
-            btnClick: function(data){
-                if(data != this.cur){
-                    this.cur = data;
-                    this.$dispatch('btn-click',data);
-                }
-            }
-        }
-	}
+	    methods: {
+	        btnClick: function(data){
+	            if(data != this.cur){
+	                this.cur = data;
+	                this.$dispatch('pageClick',data);
+	            }
+	        }
+	    }
+    }
 </script>
 <style>
+.page-bar{
+	float:right;
+}
 .page-bar ul,li{
 	margin: 0px;
 	padding: 0px;
@@ -73,7 +84,7 @@
 	float: left;
 	padding: 6px 12px;
 	margin-left: -1px;
-	line-height: 1.42857143;
+	line-height: 1;
 	color: #337ab7;
 	cursor: pointer
 }
