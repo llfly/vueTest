@@ -43,9 +43,9 @@ import API_ROOT from '../store/resources.js';
 
 
 				var url = urlArr.join('&');
-				this.$http.post(url,postdata,function cb(){
+				// this.$http.post(url,postdata,function cb(){
 					
-				})
+				// })
 			}
 		}
 	}

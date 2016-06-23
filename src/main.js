@@ -11,7 +11,6 @@ import MatchList from './views/MatchList';
 import Mainmap from './views/Mainmap';
 //import Login from './views/Login';
 
-
 Vue.use(Router);
 Vue.use(Resource);
 Vue.config.debug = true;
@@ -46,7 +45,7 @@ router.map({
 		name:'matchList',
 		component:MatchList
 	},
-	'/mainmap/:id':{
+	'/mainmap/:type/:id':{
 		name:'mainmap',
 		component:Mainmap
 	}

@@ -64,7 +64,7 @@
                     <td>{{item.retime}}</td>
                     <td>{{item.own}}</td>
                     <td>
-                        <span v-link="{name:'mainmap',params:{id:item.caseid}}">查看</span>
+                        <span v-link="{name:'mainmap',params:{id:item.caseid,type:'getmatchroute'}}">查看</span>
                         &nbsp;<span @click="delItem(item.caseid)">删除</span>
                     </td>
                 </tr>
@@ -77,6 +77,46 @@
         <Turnpage :all.sync="all" :cur.sync="page"></Turnpage>
     </div>
     <confirm v-show="delShow" :cur-item='checkedDel'></confirm>
+    <div v-show="statsShow" class="stats">
+        <table class="taskSearchShow">
+            <thead>
+                <tr>
+                    <td></td>
+                    <td colspan="4">整体变化</td>
+                    <td colspan="4">局部变化</td>
+                    <td colspan="3">不匹配分析</td>
+                </tr>
+                <tr>
+                    <td>类型</td>
+                    <td>总计</td>
+                    <td>匹配</td>
+                    <td>不匹配</td>
+                    <td>不匹配占比</td>
+                    <td>合理</td>
+                    <td>不匹配</td>
+                    <td>不合理</td>
+                    <td>不匹配</td>
+                    <td>合理变不合理</td>
+                    <td>不合理变合理</td>
+                    <td>评价未变化</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td v-for="item in stats[0]" v-text="item" track-by="$index"></td>
+                </tr>
+                <tr>
+                    <td v-for="item in stats[1]" v-text="item" track-by="$index"></td>
+                </tr>
+                <tr>
+                    <td v-for="item in stats[2]" v-text="item" track-by="$index"></td>
+                </tr>
+                <tr>
+                    <td v-for="item in stats[3]" v-text="item" track-by="$index"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </template>
 <script>
 import calendar from '../components/calendar.vue';
@@ -162,6 +202,8 @@ module.exports = {
             }],
 
             items:[],
+            stats:[],
+            statsShow:false,
             //要删除的列表
             delShow:false,
             checkedDel:[],
@@ -241,7 +283,7 @@ module.exports = {
 
                     eva:data[i].eva,
                     label:data[i].label,
-                    reva:data[i].eva=='null'?'未评':'已评',
+                    reva:data[i].neweva =='null'?'未评':'已评',
                     neweva:data[i].neweva!='null'?data[i].neweva:'',
                     mtime:data[i].mtime,
                     retime:data[i].retime,
@@ -267,10 +309,21 @@ module.exports = {
         getTab(){
             var url = API_ROOT + '&action=getmatchstat' + '&taskid=' + this.$route.params.id;
             this.$http.get(url, function(data) {
-                console.log(data);
+                if(data.status == 'success'){
+                    console.log(data);
+                   this.dealTab(data);
+                }
             }).catch(function(data, status, request) {
                 console.log('fail' + status + "," + request);
             });
+        },
+        dealTab(data){
+            var arr = ['VIPcase','重点case','一般case','合计'];
+            for(var i=0;i<3;i++){
+                data['stat'+i].unshift(arr[i]);
+                this.stats.push(data['stat'+i]);
+            }
+            this.statsShow = true;
         }
     },
     components:{
@@ -303,3 +356,8 @@ module.exports = {
     }
 }
 </script>
+<style>
+    .stats{
+        margin-top: 50px;
+    }
+</style>

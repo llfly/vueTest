@@ -49,7 +49,7 @@
 					<td>{{item.stateTime}}</td>
 					<td>{{item.own}}</td>
 					<td>
-						<span v-link="{name:'mainmap',params:{id:item.caseid}}">查看</span>
+						<span v-link="{name:'mainmap',params:{id:item.caseid,type:'getevaroute'}}">查看</span>
 						&nbsp;<span @click="delItem(item.caseid)">删除</span>
 					</td>
 				</tr>
