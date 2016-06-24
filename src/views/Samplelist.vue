@@ -59,7 +59,7 @@
 					<td>{{item.etime}}</td>
 					<td>{{item.own}}</td>
 					<td>
-						<span v-link="{name:'mainmap',params:{id:item.caseid}}">查看</span>
+						<span v-link="{name:'mainmap',params:{id:item.caseid,type:'dispcase'}}">查看</span>
 						&nbsp;<span @click="delItem(item.caseid)">删除</span>
 					</td>
 				</tr>
@@ -219,7 +219,6 @@ import API_ROOT from '../store/resources.js';
             });
         },
         turnData(data){
-        	console.log(data);
             this.all = data.pagenum;
             data = data.cases;
             //清空数据
@@ -258,17 +257,21 @@ import API_ROOT from '../store/resources.js';
     		this.delShow = false;
             var that = this;
             if(bool){
-                for(var i=0,len = this.checkedDel.length;i<len;i++){
-                    this.items.$remove(this.items.filter(function(item){return item.caseid == that.checkedDel[i];})[0]);
-                };
-                //与后台交互，清空要删除的数组
-                var url = API_ROOT + '&action=delcase' + '&user=xxx' + '&caseid='+this.checkedDel.join(',');
-                this.$http.get(url,function(data){
-                    console.log(data);
-                }).catch(function(data,status,request){
-                    console.log('fail' + status + "," + request);
-                });
-                this.checkedDel = [];
+                if(sessionStorage.user){
+                    for(var i=0,len = this.checkedDel.length;i<len;i++){
+                        this.items.$remove(this.items.filter(function(item){return item.caseid == that.checkedDel[i];})[0]);
+                    };
+                    //与后台交互，清空要删除的数组
+                    var url = API_ROOT + '&action=delcase' + '&user=xxx' + '&caseid='+this.checkedDel.join(',');
+                    this.$http.get(url,function(data){
+                        console.log(data);
+                    }).catch(function(data,status,request){
+                        console.log('fail' + status + "," + request);
+                    });
+                    this.checkedDel = [];
+                }else{
+                    this.$route.router.go({name:'login',params:{type:'sampleList'}});
+                }
             }
     	},
         pageClick(num){

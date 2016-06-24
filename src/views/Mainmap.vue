@@ -2,7 +2,7 @@
 	<div class="leftMainBox">
 		<Plan-info :start.sync="start" :end.sync="end"  :lktime.sync="lktime"  :eva.sync="eva"></Plan-info>
 		<div class="plans">
-			<Planbox v-for="item in leftInfo" track-by="$index" :name='item.name' :time='item.cost' :dist='item.dis' :traffic-light='item.trafficLight' :traffic-block='item.trafficBlock' :pathway="item.pathway" :road-condi="item.roadCondi" :type="item.type" :is-eva.sync="isEva" :plan-is-hide.sync='item.planIsHide'  :is-best-plan.sync="isBestPlan" @click="turnPlan(item.index)" :index="item.index" :class="{'bgColor':item.bgcolor}"></Planbox>
+			<Planbox v-for="item in leftInfo" track-by="$index" :name='item.name' :time='item.cost' :dist='item.dis' :traffic-light='item.trafficLight' :traffic-block='item.trafficBlock' :pathway="item.pathway" :road-condi="item.roadCondi" :type="item.type" :is-eva.sync="isEva" :plan-is-hide.sync='item.planIsHide'  :is-best-plan.sync="isBestPlan" @click="turnPlan(item.index)" :index="item.index" :class="{'bgColor':item.bgcolor}" :plan-type="planType" :label="item.label"></Planbox>
 			<span class="showHidePlan" v-show="planHasHide" @click="showAllPlan()">显示隐藏方案</span>
 		</div>
 	</div>
@@ -29,11 +29,11 @@ var links = [];
 var points = [];
 var map = null;
 var bounds = null;
-
 var drawLinePoints = [];
 var lines = [];
 var startPoint,endPoint;
 //var path = [];
+
 
 function init(){
 	//实例化地图
@@ -57,9 +57,6 @@ function init(){
 			lines.push(drawMap(i,drawLinePoints[i]));
 		}
 	}
-	setTimeout(function(){
-		selectPath(0);
-	},1000);
 	map.fitBounds(bounds);
 }
 
@@ -70,7 +67,9 @@ function initStartAndEnd(pos,type){
         position:new sogou.maps.Point(pos.x,pos.y),
         icon:image,
         map: map,
+        //draggable:true
     });
+    return marker;
 }
 function dealPoints(link,point){
 	// var link = links[0];
@@ -147,7 +146,7 @@ export default{
 			lktime:'',
 			eva:'',
 			caseid:'',
-
+			planType:'',
 			//左侧信息相关
 			//['线上方案','世纪高通','全程畅通','老自定义','新自定义','历史不合理','新结果']
 			type:'',
@@ -159,7 +158,6 @@ export default{
 			trafficBlock:'',
 			pathway:'',
 			roadCondi:'',
-
 			//是否评价过，改变文案显示：评价or重新评价
 			isEva:false,
 			evaPlanCur:'',
@@ -188,14 +186,37 @@ export default{
 		PlanInfo,
 		//Sgmap
 	},
-	ready(){
-		this.getData();
-		//action=getevaroute&caseid=xxx
+	// ready(){
+	// 	this.getData();
+	// 	var that = this;
+	// 	setTimeout(function(){
+	// 		that.turnPlan(0);
+	// 	},2000);
+	// 	//action=getevaroute&caseid=xxx
+	// },
+	route:{
+		data(){
+			map&&map.clearAll();
+			links = [];
+			points = [];
+			bounds = null;
+			drawLinePoints = [];
+			lines = [];
+			this.leftInfo = [];
+			this.getData();
+			var that = this;
+			setTimeout(function(){
+				that.turnPlan(0);
+			},2000);
+		}
 	},
 	methods:{
 		getData(){
 			var url = API_ROOT + '&action=' + this.$route.params.type + '&caseid='+ this.$route.params.id;
-			//console.log(url);
+			console.log(url);
+			//普通匹配 getevaroute  匹配校验 getmatchroute  getevaroute  getmatchroute
+			this.planType = this.$route.params.type;
+			//console.log(this.planType);
 			this.$http.get(url, function(data) {
 				//console.log(data);
                 if(data.status == 'success')
@@ -217,7 +238,6 @@ export default{
 			endPoint = data.routes[0].points[data.routes[0].points.length-1];
 
 			//对数据进行排序整理,地图绘制数据
-
 			//整理每一个planBox
 			for(var i=0,len = data.routes.length;i<len;i++){
 				links.push(data.routes[i].links);
@@ -250,13 +270,21 @@ export default{
 					obj.roadCondi = '有路况' + data.routes[i].lklen/1000 + '公里';
 				}
 				//['线上方案','世纪高通','全程畅通','老自定义','新自定义','历史不合理']
-				if(data.routes[i].name == '线上方案' || data.routes[i].name == '世纪高通'  || data.routes[i].name == '全程畅通' ||
-					data.routes[i].name == '历史不合理' || data.routes[i].name == '新结果' || data.routes[i].name == '老自定义'
-				){
-					obj.type = data.routes[i].name;
+
+				var exp = new RegExp("线上方案|世纪高通|全程畅通|历史不合理|新结果|老自定义|历史方案");
+				//console.log(exp.test(data.routes[i].name));
+				if(exp.test(data.routes[i].name)){
+					obj.type = data.routes[i].name.replace(/\d/,'');
 				}else{
-					obj.type = '世纪高通';//'新自定义';
+					obj.type = '新自定义';
 				}
+				// if(data.routes[i].name == '线上方案' || data.routes[i].name == '世纪高通'  || data.routes[i].name == '全程畅通' ||
+				// 	data.routes[i].name == '历史不合理' || data.routes[i].name == '新结果' || data.routes[i].name == '老自定义'
+				// ){
+				// 	obj.type = data.routes[i].name;
+				// }else{
+				// 	obj.type = '世纪高通';//'新自定义';
+				// }
 				this.leftInfo.push(obj);
 			}
 
@@ -302,28 +330,33 @@ export default{
 		//评论窗口数据逻辑
 		assessSave(bool,read,sead,assessText){
 			if(bool){
+				if(sessionStorage.user){
 				//上传数据
-				var url = API_ROOT + '&action=submiteva';
+					var url = API_ROOT + '&action=submiteva';
 
-				this.$http.post(url,{
-					taskid:this.$route.params.id,
-					user:'xxx',
-					eva:[{
-						caseid:this.caseid,
-						name:this.evaPlanCur.name,
-						cost:0,dis:0,
-						eva:read,
-						label:sead,
-						reason:assessText,
-					}]
-				}).then(function(data){
-					console.log(1);
-				}).catch(function(){
-					console.log('评价 post请求 失败');
-				});
-				//修改逻辑为重新评价
-				this.isEva = true;
+					this.$http.post(url,{
+						taskid:this.$route.params.id,
+						user:sessionStorage.user,
+						eva:[{
+							caseid:this.caseid,
+							name:this.evaPlanCur.name,
+							cost:0,dis:0,
+							eva:read,
+							label:sead,
+							reason:assessText,
+						}]
+					}).then((response)=>{
+							//console.log(response);
+							alert('上传成功');
+						},(response)=>{
+							alert('上传失败');
+						});
+					//修改逻辑为重新评价
+					this.isEva = true;
 				//post action=submiteva
+				}else{
+					this.$route.router.go({name:'login',params:{type:'mainmap',type2:this.$route.params.type,id:this.$route.params.id}});
+				}
 			}
 			this.assessShow = false;
 		},
@@ -340,24 +373,28 @@ export default{
 				var url = API_ROOT + '&action=submiteva';
 				// }, [options]).then(successCallback, errorCallback);
 				//设为最佳 or 取消最佳
-
-				this.$http.post(url,{
-					taskid:this.$route.params.id,
-					user:'xxx',
-					eva:[{
-						caseid:this.caseid,
-						name:this.bestPlanCur.name,
-						cost:0,dis:0,
-						eva:this.bestPlanCur.eva,
-						label:this.bestPlanCur.label,
-						reason:assessText,
-					}]
-				}).then(function(data){
-					console.log(1);
-				}).catch(function(){
-					console.log('设为最佳 post请求 失败');
-				});
-				this.isBestPlan = !this.isBestPlan;
+				if(sessionStorage.user){
+					this.$http.post(url,{
+						taskid:this.$route.params.id,
+						user:sessionStorage.user,
+						eva:[{
+							caseid:this.caseid,
+							name:this.bestPlanCur.name,
+							cost:0,dis:0,
+							eva:this.bestPlanCur.eva,
+							label:this.bestPlanCur.label,
+							reason:assessText,
+						}]
+					}).then((response)=>{
+							//console.log(response);
+							alert('上传成功');
+						},(response)=>{
+							alert('上传失败');
+						})
+					this.isBestPlan = !this.isBestPlan;
+				}else{
+					this.$route.router.go({name:'login',params:{type:'mainmap',type2:this.$route.params.type,id:this.$route.params.id}});
+				}
 			}
 			this.BestplanShow = false;
 		},

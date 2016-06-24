@@ -1,6 +1,7 @@
 <template>
 	<div class="plan-box" v-show='planIsHide'>
 		<span class="plan-origin">{{name}}</span>
+		<span class="plan-label" v-show="isLabel"  :class="label=='最佳'?plan-best-label:plan-label">{{label}}</span>
 		<div class="plan-info1">
 			<span v-show="time">{{time}}</span>
 			<span v-show="dist" class="border">{{dist}}</span>
@@ -21,28 +22,30 @@
 </template>
 <script>
 	module.exports = {
-		props:['type','name','time','dist','trafficLight','trafficBlock','pathway','roadCondi','isEva','isBestPlan','index','planIsHide'],
+		props:['type','name','time','dist','trafficLight','trafficBlock','pathway','roadCondi','isEva','isBestPlan','index','planIsHide','planType','label'],
 		// props(){
 		// 	rmBest:true;
 		// 	ishide:true;
 		// },
 		data(){
 			return{
-				origin:[{
-					id:0,
-					name:'线上方案',
-					type:'0',//0人工评价,1二次评价
-					isAssess:1,//是否已经评价1是 0否
-					assess:[[{text:'重新评价'},{text:'评价'}],[{text:'设为最佳 隐藏',},{text:'取消最佳 隐藏'}]]
-				},{
+				// origin:[{
+				// 	id:0,
+				// 	name:'线上方案',
+				// 	type:'0',//0人工评价,1二次评价
+				// 	isAssess:1,//是否已经评价1是 0否
+				// 	assess:[[{text:'重新评价'},{text:'评价'}],[{text:'设为最佳 隐藏',},{text:'取消最佳 隐藏'}]]
+				// },{
 
-				}],
+				// }],
 				//评价按钮 显示隐藏
 				evaBtn:false,
 				//设为最佳按钮 显示隐藏
 				reBest:false,
 				//隐藏按钮 显示隐藏
 				ishide:false,
+				//标签按钮 显示隐藏
+				isLabel:false,
 				//origin:['线上方案','全程畅通','世纪高通','自定义','新结果','历史不合理','老自定义','新自定义','新结果'],
 				// time:'1小时30分钟',
 				// dist:'22.3公里',
@@ -54,14 +57,29 @@
 			}
 		},
 		ready(){
-			if(this.type == '线上方案'){
-				this.evaBtn = true;
-			}else if(this.type == '世纪高通' || this.type == '全程畅通'){
-				this.reBest = true;
-
-				this.ishide = true;
-			}else{
-
+			if(this.planType == 'getevaroute'){//普通匹配
+				if(this.type == '线上方案'){
+					this.evaBtn = true;
+				}else if(this.type == '世纪高通' || this.type == '全程畅通' || this.type== '老自定义'){
+					this.reBest = true;
+					this.ishide = true;
+				}else if(this.type == '新自定义'){
+					//保存按钮显示逻辑
+				}
+			}else if(this.planType == 'getmatchroute'){//匹配校验
+				if(this.type == '新方案'){
+					this.evaBtn = true;
+				}else if(this.type == '线上方案' || this.type == '世纪高通' || this.type == '全程畅通' || this.type== '老自定义'){
+					this.reBest = true;
+					this.ishide = true;
+				}else if(this.type == '历史不合理'){
+					this.ishide = true;
+				}else if(this.type == '新自定义'){
+					//保存按钮逻辑显示
+				}
+			}else if(this.planType == 'dispcase'){
+				//显示label
+				this.isLabel = true;
 			}
 		},
 		methods:{
@@ -91,6 +109,18 @@
 		width:80px;
 		color:white;
 		background-color: #444;
+		padding: 0 8px;
+	}
+	.plan-label{
+		width:80px;
+		color:white;
+		background-color: #777;
+		padding: 0 8px;
+	}
+	.plan-best-label{
+		width:80px;
+		color:white;
+		background-color: red;
 		padding: 0 8px;
 	}
 	.plan-info1,.plan-info2{

@@ -9,43 +9,46 @@ import Newtask from './views/Newtask';
 import Artificial from './views/Artificial';
 import MatchList from './views/MatchList';
 import Mainmap from './views/Mainmap';
-//import Login from './views/Login';
+import Login from './views/Login';
 
 Vue.use(Router);
 Vue.use(Resource);
 Vue.config.debug = true;
+Vue.http.options.emulateJSON = true;
 
-var router = new Router({})
+var router = new Router({
+	history:true
+})
 
 router.map({
 	'/':{
 		component:Tasklist
 	},
-	// '/login':{
-	// 	name:'login',
-	// 	component:Login
-	// },
-	'/taskList':{
+	'login/:type/:type2/:id':{
+		name:'login',
+		component:Login
+	},
+	'taskList':{
 		name:'taskList',
 		component:Tasklist
 	},
-	'/newTask':{
+	'newTask':{
 		name:'newTask',
 		component:Newtask
 	},
-	'/sampleList':{
+	'sampleList':{
 		name:'sampleList',
 		component:SampleList
 	},
-	'/artificial/:id':{
+	'artificial/:id':{
 		name:'artificial',
 		component:Artificial
 	},
-	'/matchlist/:id':{
+	'matchlist/:id':{
 		name:'matchList',
 		component:MatchList
 	},
-	'/mainmap/:type/:id':{
+	'mainmap/:type/:id':{
 		name:'mainmap',
 		component:Mainmap
 	}

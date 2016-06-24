@@ -36,16 +36,26 @@ import API_ROOT from '../store/resources.js';
 		},
 		methods:{
 			submitMethod(){
+				var formData = new FormData(this.$el.querySelector('#newTaskFile'));
 				var urlArr = [API_ROOT];
 				urlArr.push('action=' + this.picked);
 				urlArr.push('taskname=' + this.newTaskName);
-				urlArr.push('user=' + 'xxx');
+				if(sessionStorage.user){
+					urlArr.push('user=' + sessionStorage.user);
+					var url = urlArr.join('&');
+					this.$http.post(url,formData).then((response)=>{
+						//console.log(response);
+						alert('上传成功');
+					},(response)=>{
+						alert('上传失败');
+					});
+				}else{
+					 this.$route.router.go({name:'login',params:{type:'newTask'}});
+				}
 
 
-				var url = urlArr.join('&');
-				// this.$http.post(url,postdata,function cb(){
-					
-				// })
+
+				//this.$http.post(url,)
 			}
 		}
 	}

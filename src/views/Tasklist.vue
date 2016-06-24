@@ -195,17 +195,21 @@ module.exports = {
     		this.delShow = false;
             var that = this;
             if(bool){
-                for(var i=0,len = this.checkedDel.length;i<len;i++){
-                    this.items.$remove(this.items.filter(function(item){return item.taskid == that.checkedDel[i];})[0]);
-                };
-                //与后台交互，清空要删除的数组
-                var url = API_ROOT + '&action=deltask' + '&user=xxx' + '&taskid='+this.checkedDel.join(',');
-                this.$http.get(url,function(data){
-                    console.log(data);
-                }).catch(function(data,status,request){
-                    console.log('fail' + status + "," + request);
-                });
-                this.checkedDel = [];
+                if(sessionStorage.user){
+                    for(var i=0,len = this.checkedDel.length;i<len;i++){
+                        this.items.$remove(this.items.filter(function(item){return item.taskid == that.checkedDel[i];})[0]);
+                    };
+                    //与后台交互，清空要删除的数组
+                    var url = API_ROOT + '&action=deltask' + '&user=xxx' + '&taskid='+this.checkedDel.join(',');
+                    this.$http.get(url,function(data){
+                        console.log(data);
+                    }).catch(function(data,status,request){
+                        console.log('fail' + status + "," + request);
+                    });
+                    this.checkedDel = [];
+                }else{
+                    this.$route.router.go({name:'login',params:{type:'taskList'}});
+                }
             }
     	},
         pageClick(num){

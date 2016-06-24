@@ -20,16 +20,32 @@ import API_ROOT from '../store/resources.js';
 		},
 		methods:{
 			loginMethod(){
+				var self = this;
 				var urlArr = [API_ROOT];
-
 				urlArr.push('action=login');
 				if(this.username && this.password){
 					urlArr.push('user='+this.username);
 					urlArr.push('pwd='+this.password);
 					var url = urlArr.join('&');
-					console.log(url);
+					//console.log(self.$route.params.type);
 					this.$http.get(url, function(data) {
-						this.turnData(data);
+						if(data.status == 'success'){
+							sessionStorage.user = this.username;
+							//console.log(self.$route.params.type);
+
+							var type = self.$route.params.type;
+							var type2 = self.$route.params.type2;
+							var id = self.$route.params.id;
+							if(type!=':type'&&type2!='type2'&&id!=':id'){
+								self.$route.router.go({name:type,params:{type:type2,id:id}});
+							}else if(type!=':type'&&id!=':id'){
+								self.$route.router.go({name:type,params:{id:id}});
+							}else if(type!=":type"){
+								self.$route.router.go({name:type});
+							}else{
+								self.$route.router.go({name:'taskList'})
+							}
+						}
 					}).catch(function(data, status, request) {
 						console.log('fail' + status + "," + request);
 					});
