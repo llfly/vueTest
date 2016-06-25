@@ -137,6 +137,47 @@ function selectPath(index){
 	}
 }
 
+//拖拽点相关
+
+
+var wp,evt=sogou.maps.SEvent.trigger;
+function point2lineDistance(x0,y0,x1,y1,x2,y2){
+	var a=0;if(x1==x2&&y1==y2)
+		return Math.sqrt((x1-x0)*(x1-x0)+(y1-y0)*(y1-y0));
+	if(x1==x2){
+		a=Math.abs(x1-x0)
+	}else if(y1==y2){
+		a=Math.abs(y1-y0)
+	}else{
+		var xc,yc,a1,b1,c1,a2,b2,c2;a1=y2-y1;b1=x1-x2;c1=x1*y2-x2*y1;a2=x1-x2;b2=y1-y2;c2=(x1-x2)*x0+(y1-y2)*y0;
+		xc=(b1*c2-b2*c1)/(a2*b1-a1*b2);
+		yc=(a1*c2-a2*c1)/(a1*b2-a2*b1);
+		a=Math.sqrt((yc- y0)*(yc-y0)+(xc-x0)*(xc-x0));
+	}
+	return a
+}
+function Waypoints(a)
+{
+	var t=this,m;
+	t.m=m=a;
+    t.targets = [];
+    t.wayNodes;
+	SEvent.addDomListener(m.div,"mousemove",function(e){t.onMouseMove(e)});
+    //SEvent.addListener(ServiceConfig,"ClearNav",function(e){t.clear();});
+    SEvent.addListener(m,"clearall",function(e){
+        if(t.tp) delete t.tp;  //释放内存
+    });
+//		SEvent.addListener(m,"mouseover",t.eventHandler("onMouseOver"));
+};
+
+
+
+
+
+
+
+
+
 export default{
 	data(){
 		return{
