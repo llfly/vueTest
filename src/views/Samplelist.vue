@@ -68,6 +68,7 @@
 	</div>
 	<div class="bottomBtn">
 		<input type="submit" value="批量删除" @click="delItem()">
+        <input type="submit" value="导出" @click="printOut()">
         <Turnpage :all.sync="all" :cur.sync="page"></Turnpage>
 	</div>
     <confirm v-show="delShow" :cur-item='checkedDel'></confirm>
@@ -84,7 +85,7 @@ import API_ROOT from '../store/resources.js';
         return {
             show:false,
             type:"date", //date datetime
-            value:"2015-12-11",
+            value:"",
             // begin:"2015-12-20",
             // end:"2015-12-25",
             x:0,
@@ -189,8 +190,7 @@ import API_ROOT from '../store/resources.js';
         getData(){
             //先清空列表
             this.items = [];
-            var urlArr = [API_ROOT];
-            urlArr.push('action=getcase');
+            var urlArr = [API_ROOT+'getcase'];
             // if(this.value){
             //     urlArr.push('ctime='+ this.value);
             // }
@@ -245,6 +245,34 @@ import API_ROOT from '../store/resources.js';
                 this.checkedDel.push(item);
             if(this.checkedDel.length)
                 this.delShow = true;
+        },
+        printOut(){
+            if(this.checkedDel.length){
+                var arr = [];
+                var that = this;
+                for(var i=0,len = this.checkedDel.length;i<len;i++){
+                    arr.push(this.items.filter(function(item){return item.caseid == that.checkedDel[i];})[0].caseid);
+                };
+                var url = API_ROOT + 'exportcase' + '&caseid=' + arr.join(',');
+                var iframe = document.createElement('iframe');
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.opacity = 0;
+                iframe.src = url;
+                document.getElementsByClassName('bottomBtn')[0].appendChild(iframe);
+                setTimeout(function(){
+                    iframe.remove();
+                },2000);
+                // appendChild(iframe);
+                // iframe.remove();
+                // console.log(url);
+                // this.$http.get(url,'',{headers:{'Content-Type':'text/plain'}}).then((response) =>{
+                //     console.log(response.json());
+                //     //console.log(response.headers());
+                // }).catch(function(){
+                //     console.log('请求发送失败');
+                // });
+            }
         }
     },
     components:{
@@ -262,11 +290,13 @@ import API_ROOT from '../store/resources.js';
                         this.items.$remove(this.items.filter(function(item){return item.caseid == that.checkedDel[i];})[0]);
                     };
                     //与后台交互，清空要删除的数组
-                    var url = API_ROOT + '&action=delcase' + '&user=xxx' + '&caseid='+this.checkedDel.join(',');
+                    var url = API_ROOT + 'delcase' + '&user='+ sessionStorage.user + '&caseid='+this.checkedDel.join(',');
                     this.$http.get(url,function(data){
-                        console.log(data);
+                        if(data.status == 'fail'){
+                            alert(data.detail);
+                        }
                     }).catch(function(data,status,request){
-                        console.log('fail' + status + "," + request);
+                        alert('请求失败！');
                     });
                     this.checkedDel = [];
                 }else{

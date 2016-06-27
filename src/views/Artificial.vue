@@ -148,8 +148,7 @@ module.exports = {
         getData(){
             //先清空列表
             this.items = [];
-            var urlArr = [API_ROOT];
-            urlArr.push('action=geteva');
+            var urlArr = [API_ROOT+'geteva'];
             urlArr.push('taskid='+this.$route.params.id);
             // if(this.value){//etime,lktime  timeTypeSele
             //     urlArr.push(this.timeTypeSele +'='+ this.value);
@@ -196,13 +195,21 @@ module.exports = {
             }
         },
         saveData(){
-            var url = API_ROOT + '&action=submitevaall' + '&user=' + 'x' + '&taskid=' + this.$route.params.id;
+            if(sessionStorage.user){
+            var url = API_ROOT + 'submitevaall' + '&user=' + sessionStorage.user + '&taskid=' + this.$route.params.id;
             console.log(url);
             this.$http.get(url, function(data) {
-                console.log(data);
+                if(data.status = 'success'){
+                        alert('提交成功');
+                    }else{
+                        alert('提交失败');
+                    }
             }).catch(function(data, status, request) {
-                console.log('fail' + status + "," + request);
+                alert('请求失败');
             });
+            }else{
+                 this.$route.router.go({name:'login',params:{type:'artificial',id:this.$route.params.id}});
+            }
         },
         delItem(item){
             if(item && this.checkedDel.indexOf(item.toString())==-1)
@@ -226,11 +233,13 @@ module.exports = {
                         this.items.$remove(this.items.filter(function(item){return item.caseid == that.checkedDel[i];})[0]);
                     };
                     //与后台交互，清空要删除的数组
-                    var url = API_ROOT + '&action=deleva' + '&user='+sessionStorage.user + '&caseid='+this.checkedDel.join(',') +'&taskid=' + this.$route.params.id;
+                    var url = API_ROOT + 'deleva' + '&user='+sessionStorage.user + '&caseid='+this.checkedDel.join(',') +'&taskid=' + this.$route.params.id;
                     this.$http.get(url,function(data){
-                        console.log(data);
+                        if(data.status == 'fail'){
+                            alert(data.detail);
+                        }
                     }).catch(function(data,status,request){
-                        console.log('fail' + status + "," + request);
+                         alert('请求失败！');
                     });
                     this.checkedDel = [];
                 }else{

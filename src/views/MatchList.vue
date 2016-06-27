@@ -233,8 +233,7 @@ module.exports = {
         getData(){
             //先清空列表
             this.items = [];
-            var urlArr = [API_ROOT];
-            urlArr.push('action=getmatch');
+            var urlArr = [API_ROOT+'getmatch'];
             urlArr.push('taskid='+this.$route.params.id);
             //匹配时间，重评时间
             // if(this.value){//etime,lktime  timeTypeSele
@@ -292,13 +291,20 @@ module.exports = {
             }
         },
         saveData(){
-            var url = API_ROOT + '&action=submitmatchall' + '&user=' + 'x' + '&taskid=' + this.$route.params.id;
-            console.log(url);
-            this.$http.get(url, function(data) {
-                console.log(data);
-            }).catch(function(data, status, request) {
-                console.log('fail' + status + "," + request);
-            });
+            if(sessionStorage.user){
+                var url = API_ROOT + 'submitmatchall' + '&user=' + sessionStorage.user + '&taskid=' + this.$route.params.id;
+                this.$http.get(url, function(data) {
+                    if(data.status = 'success'){
+                        alert('提交成功');
+                    }else{
+                        alert('提交失败');
+                    }
+                }).catch(function(data, status, request) {
+                    alert('请求失败');
+                });
+            }else{
+                this.$route.router.go({name:'login',params:{type:'matchList',id:this.$route.params.id}});
+            }
         },
         delItem(item){
             if(item && this.checkedDel.indexOf(item.toString())==-1)
@@ -307,7 +313,7 @@ module.exports = {
                 this.delShow = true;
         },
         getTab(){
-            var url = API_ROOT + '&action=getmatchstat' + '&taskid=' + this.$route.params.id;
+            var url = API_ROOT + 'getmatchstat' + '&taskid=' + this.$route.params.id;
             this.$http.get(url, function(data) {
                 if(data.status == 'success'){
                     console.log(data);
@@ -341,7 +347,7 @@ module.exports = {
                         this.items.$remove(this.items.filter(function(item){return item.caseid == that.checkedDel[i];})[0]);
                     };
                     //与后台交互，清空要删除的数组
-                    var url = API_ROOT + '&action=delmatch' + '&user=xxx' + '&caseid='+this.checkedDel.join(',') +'&taskid=' + this.$route.params.id;
+                    var url = API_ROOT + 'delmatch' + '&user=' + sessionStorage.user + '&caseid='+this.checkedDel.join(',') +'&taskid=' + this.$route.params.id;
                     this.$http.get(url,function(data){
                         console.log(data);
                     }).catch(function(data,status,request){

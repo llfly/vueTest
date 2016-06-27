@@ -3,7 +3,8 @@
 
 // Vue.use(VueResource);
 
-const API_ROOT = 'http://10.136.21.21:8090/test/test=true';
+const API_ROOT = 'http://10.136.21.21:8090/routecase/action=';
+
 // HTTP相关
 
 // Vue.http.options.emulateJSON = true;

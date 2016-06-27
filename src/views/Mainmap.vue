@@ -44,6 +44,7 @@ function init(){
 		'mapTypeId': sogou.maps.MapTypeId.ROADMAP
 	}
 	map = new sogou.maps.Map(document.getElementById("map_canvas"), myOptions);
+	initDrag();
 	fitBounds();
 	initStartAndEnd(startPoint,'start');
 	initStartAndEnd(endPoint,'end');
@@ -106,6 +107,9 @@ function drawMap(index,path){
 	            strokeColor: colorArr[links[index][i].level],
 	            dashstyle:"Solid"
         	});
+        	if(map.dgObject){
+        		map.dgObject.addTarget(p);
+        	}
         	pathArr.push(p);
         	//console.log(i,path[i]);
 		}catch (ex){
@@ -156,29 +160,304 @@ function point2lineDistance(x0,y0,x1,y1,x2,y2){
 	}
 	return a
 }
-function Waypoints(a)
+function Waypoints()
 {
 	var t=this,m;
-	t.m=m=a;
+	t.m=m=map;
     t.targets = [];
     t.wayNodes;
-	SEvent.addDomListener(m.div,"mousemove",function(e){t.onMouseMove(e)});
+	sogou.maps.SEvent.addDomListener(m.div,"mousemove",function(e){t.onMouseMove(e)});
     //SEvent.addListener(ServiceConfig,"ClearNav",function(e){t.clear();});
-    SEvent.addListener(m,"clearall",function(e){
+    sogou.maps.SEvent.addListener(m,"clearall",function(e){
         if(t.tp) delete t.tp;  //释放内存
     });
-//		SEvent.addListener(m,"mouseover",t.eventHandler("onMouseOver"));
+};
+var wyp=Waypoints.prototype=new sogou.maps.G2MObject();
+wyp.listeners = [];
+wyp.addTarget = function(a,b){
+	var t = this;
+	t.listeners.push(sogou.maps.SEvent.addListener(a,"mouseover",function(e){t.onMouseOver(a,e)}));
+}
+wyp.onMouseMove=function(a)
+{
+	var t=this,d=t.tp,e=t.cl,m=t.m,c,f,g,h=0,i,k=t.sm,l,o,p,q,r=1,s,u,v,x1,x2,y1,y2,x,y,z;
+	if(!a) a=event;
+	if(d) u=d;
+	if(e) v=e;
+	if(u&&v)
+	{
+		c=_getRelativePointByEvent(a,m.div);
+		g=m.divToBitmapCoordinate(c.x,c.y);
+		if(k)
+		{
+			q=t.wayNodes;
+			q=!q?[]:q;
+			x1=Math.min(k[0].x,k[1].x)-5;
+			x2=Math.max(k[0].x,k[1].x)+5;
+			y1=Math.min(k[0].y,k[1].y)-5;
+			y2=Math.max(k[0].y,k[1].y)+5;
+			if(x1<g.x&&g.x<x2&&y1<g.y&&g.y<y2)
+			{
+				h=point2lineDistance(g.x,g.y,k[0].x,k[0].y,k[1].x,k[1].y);
+				if(h<5)
+				{
+					o=k[1].y-k[0].y;
+					p=k[1].x-k[0].x;
+					if(Math.abs(o)>Math.abs(p)){y=g.y;x=(y-k[0].y)*p/o+k[0].x}
+					else{x=g.x;y=o*(x-k[0].x)/p+k[0].y}
+					for(i=0;i<q.length;i++)
+					{
+						s=m.spec.getBitmap(q[i].y,q[i].x,m.getLevelIndex());
+						if(s.x>x-10&&x+10>s.x&&s.y>y-10&&y+10>s.y) {
+                            r=0;break;
+                        }
+					}
+					if(r)
+					{
+						t.show(u,e);
+                        d.setPosition(m.spec.getMer(x,y,m.getZoom()));
+						return
+					}
+				}
+			}
+			window.clearTimeout(t.hideTimer);
+			t.hideTimer=t.setTimeout(t.hide,100,u,e);
+		}
+        f = [];
+
+        // if(e.feature.segments && e.feature.levels)
+        //     z =  _filterNodes(e.feature.segments,e.feature.levels,t.m.getZoom())[0];
+        // else
+        	//z =  e.feature.points;
+        z = e.path;
+        for(i=0;i<z.length;i++){      //将摩卡托转换为bitmap坐标
+            var zi = z[i];
+            f.push(m.spec.getBitmap(zi.y,zi.x,t.m.getLevelIndex()))
+        }
+		for(i=0;i<f.length-1;i++)
+		{
+			x1=Math.min(f[i].x,f[i+1].x)-5;
+			x2=Math.max(f[i].x,f[i+1].x)+5;
+			y1=Math.min(f[i].y,f[i+1].y)-5;
+			y2=Math.max(f[i].y,f[i+1].y)+5;
+			if(x1<g.x&&g.x<x2&&y1<g.y&&g.y<y2)
+			{
+				h=point2lineDistance(g.x,g.y,f[i].x,f[i].y,f[i+1].x,f[i+1].y);
+				if(h<5) {t.sm=[f[i],f[i+1]];
+				break}
+			}
+		}
+	}
+	else if(u) t.hide(u,e);
 };
 
+wyp.onMouseOver=function(a,b){
+	var t=this,c=t.tp,d,e,f,g,h,k,u="WP"+_uniqueId(),m=t.m;
+	if(a&&a.fType=="L"&&b){
+		d=b.latLng;
+		t.cl=a;
+        //g = a.feature.caption;
+        // if(g.byteLength() > 20)
+        //     h = "Lable01";
+        // else
+        //     h = "Lable02";
+		if(!c){
+            c = t.tp =new sogou.maps.Marker({
+            map:map,
+            position:d,
+            // label:{
+            //    visible:true,
+            //    pixelOffset:new Point(10,20),
+            //    style : h
+            // },
+            styleId : "S1923",
+            id: u
+            });
+            c.setZIndex(9999);
+            c.setDraggable(true);
+            sogou.maps.SEvent.addListener(c,"drag",function(a){
+                t.isdging=1;
+                a.tar = c;
+                sogou.maps.SEvent.trigger(t,"draging",a,t.cl.path)}
+            );
+            sogou.maps.SEvent.addListener(c,"dragend",function(a){
+                t.isdging=0;
+                t.hide(c,t.cl);
+                sogou.maps.SEvent.trigger(t,"dragend",a.point,t.cl)
+            });
+	   }
+    c.getLabelObj() && c.getLabelObj().setStyle(h);
+	}
+};
+
+wyp.show=function(a,b){
+	var t = this;
+	a.setVisible(true);
+}
+
+wyp.hide=function(a,b){
+    if(!this.isdging){
+        a.setVisible(false);
+    }
+}
+
+function initDrag(){
+	if(!wp){
+		map.dgObject = new Waypoints();
+	}
+	sogou.maps.SEvent.addListener(map.dgObject,'draging',draging);
+	sogou.maps.SEvent.addListener(map.dgObject,'dragend',dragend);
+}
+
+function draging(a,b,c){
+	console.log(a,b,c);
+	var bs=toArr(b),tn;
+		if(!st)st=now();
+		var dt=now();
+// 		if(dt-st<=speed&&!isFirst)return;
+// 		else{st=dt;isMove=true;isFirst=0}
+// 		if(isdraging==0){
+// 		    ol=null;
+// 			stime=now();
+// 			isdraging=1;
+// 			dl=0;
+// 			for(var i=0;i<bs.length;i++){
+// 			    tn=bs[i]._node
+// 				while(tn.parentNode){
+//                     tn=tn.parentNode;
+//                 }
+// 				if(i==0){
+// 					start=tn.start;
+// 				}
+// 				if(i==bs.length-1){
+// 					end=tn.end;
+// 				}
+// 				dl+=tn.attributes.distance;
+//                 if(tn&&tn.childNodes)
+//                     forArray(tn.childNodes,function(f){
+//                         me.map.removeFeature(f.fn);
+//                     });
+// 			}
+//             clearAllViaFn();
+// 			if(c!="from"&&c!="to"&&(!b.length||b.length<2))ol=tn;
+// 		}
+// 		var cwp=a,dra = new Point(a.point.x,a.point.y);
+//         me.host.mode = 2;
+// 		if(c=="from") {
+//             me.host.from.coord = a.point;
+//             me.host.from.type = "coord";
+//             start = a.point;
+//         }else if(c=="to") {
+//             me.host.to.coord = a.point;
+//             me.host.to.type = "coord";
+//             end = a.point;
+//         }else if(c && c.indexOf("via")>-1){
+//             var idx = parseInt(c.split("|")[1]);
+//             me.host.wayPoint[idx-1].coord = a.point;
+//             me.host.wayPoint[idx-1].type = "coord";
+//         }
+// 		if(c=="from"||c=="to") {
+//             a=null;
+//         }else if(c && c.indexOf("via")>-1){
+//            me.host.dragObject["point"] = a.point;
+//         }else{
+//             var idxArr = getWayNodesIndex(bs[0]);  //[route index,way node idx] 0:线路的idx 1：当前前拖拽点应为的idx
+//             if(a.tar && (a.tar.idx || a.tar.idx == 0)) {    //如果拖动本身是拖动点，处理拖动类型。 逻辑有点乱，可以优化。
+//                 me.host.dragObject.idx = idxArr[1];    //拖拽点得索引
+//                 me.host.dragObject.rId = idxArr[0];     //道路的索引
+//                 me.host.dragObject["point"] =  me.host.dragPoint[idxArr[0]][idxArr[1]];
+//             }
+//             if(!me.host.dragObject["point"]) {      //如果产生的是新的拖拽点，就添加到拖拽对象中。
+//                  me.host.dragPoint[idxArr[0]].splice(idxArr[1],0,dra);
+//                  me.host.dragObject.idx =  idxArr[1];
+//                  me.host.dragObject.rId = idxArr[0];
+// //                me.host.dragPoint.push(dra);
+//             }else{
+//                me.host.dragPoint[idxArr[0]][me.host.dragObject.idx] = dra;   //更新新的拖动对象。
+//             }
+//             me.host.dragObject["point"] = dra;
+//         }
+//         var url = me.host.getDragReqUrl(start,end);
+// 		function _cb_(a1){
+// 			if(!isMove) return;
+// 			var pn=null,fn,m;
+//             m = cwp.tar;
+//             cwp.tar.setTitle(a1.response.Waypoints.Waypoint[1].caption+"("+(me.result.distance-dl+a1.response.distance)/1000+"公里)");
+// 			pn=FeatureNode.loadFromJson(a1.response.Route.Feature);
+// 			fn=gf("dragLine_Temp");
+// 			if(fn){
+//                 me.map.removeFeature(fn);
+// 			}
+//             pn.style.id="L50";
+// 			pn.id="dragLine_Temp";
+// 			me.map.addFeature(pn);
+// 		};
+// 		scs.send(null,url,_cb_,true,function(a,b){_cb_("",a,b)});
+}
+function dragend(){
+	console.log('dragend');
+}
 
 
 
 
+/**
+*过滤限定了显示级别的点，只有显示级别低于等于当前缩放级别的点才被记录下来
+*@param a Array[Point]	所有的点坐标 [Point]
+*@param b Array[Number]   所有的点对应的显示级别 [Number]
+*@param c Number	当前的缩放级别
+*@return Array[Point] 符合当前缩放级别下显示的点
+*/
+function _filterNodes(a,b,c)
+{
+    var i,j,d=[];
+    if(!b)return a;
+    for(i=0;i<a.length;i++){
+        d[i]=[];
+        for(j=0;j<a[i].length;j++){
+            if(b[i][j]!=null&&b[i][j]<=c)d[i].push(a[i][j]);
+        }
+    }
+    return d
+}
+function _uniqueId(){
+	var a=Math.random,b=parseInt;
+	return Number(new Date()).toString()+b(10*a())+b(10*a())+b(10*a())
+}
+function _getRelativePointByEvent(a, b, c) {
+	if (!c) {
+		c = new sogou.maps.Point(0, 0)
+	}
+	var e = getPointByEvent(a),
+		f = _offsetPositionAbsolute(b);
+	c.x = e.x - f.x;
+	c.y = e.y - f.y
+	return c
+}
 
+function getPointByEvent(e) {
+	var b = document.documentElement,
+		c = document.body;
+	return {
+		x: e.pageX || (e.clientX + (b.scrollLeft || c.scrollLeft)),
+		y: e.pageY || (e.clientY + (b.scrollTop || c.scrollTop))
+	}
+}
 
+function _offsetPositionAbsolute(a) {
+	var b = {
+		"x": 0,
+		"y": 0
+	};
+	while (a) {
+		b.x += a.offsetLeft || 0;
+		b.y += a.offsetTop || 0;
+		a = a.offsetParent
+	}
+	return b
+}
 
-
-export default{
+module.exports = {
 	data(){
 		return{
 			//基本信息相关
@@ -247,13 +526,14 @@ export default{
 			this.getData();
 			var that = this;
 			setTimeout(function(){
+				if(that.leftInfo.length)
 				that.turnPlan(0);
 			},2000);
 		}
 	},
 	methods:{
 		getData(){
-			var url = API_ROOT + '&action=' + this.$route.params.type + '&caseid='+ this.$route.params.id;
+			var url = API_ROOT  + this.$route.params.type + '&caseid='+ this.$route.params.id;
 			console.log(url);
 			//普通匹配 getevaroute  匹配校验 getmatchroute  getevaroute  getmatchroute
 			this.planType = this.$route.params.type;
@@ -373,7 +653,7 @@ export default{
 			if(bool){
 				if(sessionStorage.user){
 				//上传数据
-					var url = API_ROOT + '&action=submiteva';
+					var url = API_ROOT + 'submiteva';
 
 					this.$http.post(url,{
 						taskid:this.$route.params.id,
@@ -411,7 +691,7 @@ export default{
 			if(bool){
 				//上传数据
 				 //this.$http.post(
-				var url = API_ROOT + '&action=submiteva';
+				var url = API_ROOT + 'submiteva';
 				// }, [options]).then(successCallback, errorCallback);
 				//设为最佳 or 取消最佳
 				if(sessionStorage.user){

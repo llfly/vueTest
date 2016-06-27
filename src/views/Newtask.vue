@@ -37,8 +37,7 @@ import API_ROOT from '../store/resources.js';
 		methods:{
 			submitMethod(){
 				var formData = new FormData(this.$el.querySelector('#newTaskFile'));
-				var urlArr = [API_ROOT];
-				urlArr.push('action=' + this.picked);
+				var urlArr = [API_ROOT+this.picked];
 				urlArr.push('taskname=' + this.newTaskName);
 				if(sessionStorage.user){
 					urlArr.push('user=' + sessionStorage.user);

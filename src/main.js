@@ -17,7 +17,8 @@ Vue.config.debug = true;
 Vue.http.options.emulateJSON = true;
 
 var router = new Router({
-	history:true
+	hashbang:true
+	//history:true
 })
 
 router.map({

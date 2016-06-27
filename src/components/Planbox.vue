@@ -3,14 +3,14 @@
 		<span class="plan-origin">{{name}}</span>
 		<span class="plan-label" v-show="isLabel"  :class="label=='最佳'?plan-best-label:plan-label">{{label}}</span>
 		<div class="plan-info1">
-			<span v-show="time">{{time}}</span>
-			<span v-show="dist" class="border">{{dist}}</span>
-			<span v-show="trafficLight" class="border">{{trafficLight}}</span>
+			<span v-show="time" class="border-right">{{time}}</span>
+			<span v-show="dist">{{dist}}</span>
+			<span v-show="trafficLight" class="border-left">{{trafficLight}}</span>
 		</div>
 		<div class="plan-info2">
-			<span v-show="trafficBlock">{{trafficBlock}}</span>
-			<span v-show="pathway" class="border">{{pathway}}</span>
-			<span v-show="roadCondi" class="border">{{roadCondi}}</span>
+			<span v-show="trafficBlock" class="border-right">{{trafficBlock}}</span>
+			<span v-show="pathway">{{pathway}}</span>
+			<span v-show="roadCondi" class="border-left">{{roadCondi}}</span>
 		</div>
 		<div class="plan-opt">
 			<span v-show="reBest" @click='bestPlanShow()' v-text="isBestPlan?'取消最佳':'设为最佳'"></span>
@@ -132,8 +132,11 @@
 	.plan-info1 span,.plan-info2 span{
 		padding:0 8px;
 	}
-	.plan-box .border{
+	.plan-box .border-left{
 		border-left: 1px solid #000;
+	}
+	.plan-box .border-right{
+		border-right: 1px solid #000;
 	}
 	.plan-box .plan-btn{
 		background-color: rgb(0,153,255);
@@ -142,7 +145,7 @@
 		display:inline-block;
 		position: absolute;
 		right: 15px;
-		top:35px;
+		top:25px;
 		color:white;
 		cursor: pointer;
 	}

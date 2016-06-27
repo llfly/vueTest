@@ -134,8 +134,7 @@ module.exports = {
         getData(){
             //先清空列表
             this.items = [];
-            var urlArr = [API_ROOT];
-            urlArr.push('action=gettask');
+            var urlArr = [API_ROOT+'gettask'];
             console.log(this.value);
             // if(this.value){
             //     urlArr.push('ctime='+ this.value);
@@ -200,11 +199,15 @@ module.exports = {
                         this.items.$remove(this.items.filter(function(item){return item.taskid == that.checkedDel[i];})[0]);
                     };
                     //与后台交互，清空要删除的数组
-                    var url = API_ROOT + '&action=deltask' + '&user=xxx' + '&taskid='+this.checkedDel.join(',');
+                    var url = API_ROOT + 'deltask' + '&user='+ sessionStorage.user + '&taskid='+this.checkedDel.join(',');
+                    console.log(url);
                     this.$http.get(url,function(data){
                         console.log(data);
+                        if(data.status == 'fail'){
+                            alert(data.detail);
+                        }
                     }).catch(function(data,status,request){
-                        console.log('fail' + status + "," + request);
+                        alert('请求失败！');
                     });
                     this.checkedDel = [];
                 }else{

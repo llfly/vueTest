@@ -21,12 +21,12 @@ import API_ROOT from '../store/resources.js';
 		methods:{
 			loginMethod(){
 				var self = this;
-				var urlArr = [API_ROOT];
-				urlArr.push('action=login');
+				var urlArr = [API_ROOT+'login'];
 				if(this.username && this.password){
 					urlArr.push('user='+this.username);
 					urlArr.push('pwd='+this.password);
 					var url = urlArr.join('&');
+					console.log(url);
 					//console.log(self.$route.params.type);
 					this.$http.get(url, function(data) {
 						if(data.status == 'success'){
@@ -45,9 +45,13 @@ import API_ROOT from '../store/resources.js';
 							}else{
 								self.$route.router.go({name:'taskList'})
 							}
+						}else{
+							alert('账号或用户名错误');
 						}
+					},function(){
+
 					}).catch(function(data, status, request) {
-						console.log('fail' + status + "," + request);
+						alert('请求发送失败');
 					});
 				}
 			}
