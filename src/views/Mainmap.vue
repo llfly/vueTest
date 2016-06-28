@@ -32,6 +32,8 @@ var bounds = null;
 var drawLinePoints = [];
 var lines = [];
 var startPoint,endPoint;
+var CaseID;
+var dragArr = [];
 //var path = [];
 
 
@@ -178,8 +180,7 @@ wyp.addTarget = function(a,b){
 	var t = this;
 	t.listeners.push(sogou.maps.SEvent.addListener(a,"mouseover",function(e){t.onMouseOver(a,e)}));
 }
-wyp.onMouseMove=function(a)
-{
+wyp.onMouseMove=function(a){
 	var t=this,d=t.tp,e=t.cl,m=t.m,c,f,g,h=0,i,k=t.sm,l,o,p,q,r=1,s,u,v,x1,x2,y1,y2,x,y,z;
 	if(!a) a=event;
 	if(d) u=d;
@@ -226,9 +227,9 @@ wyp.onMouseMove=function(a)
         f = [];
 
         // if(e.feature.segments && e.feature.levels)
-        //     z =  _filterNodes(e.feature.segments,e.feature.levels,t.m.getZoom())[0];
+        // 		z =  _filterNodes(e.feature.segments,e.feature.levels,t.m.getZoom())[0];
         // else
-        	//z =  e.feature.points;
+        //		z =  e.feature.points;
         z = e.path;
         for(i=0;i<z.length;i++){      //将摩卡托转换为bitmap坐标
             var zi = z[i];
@@ -270,7 +271,7 @@ wyp.onMouseOver=function(a,b){
             //    pixelOffset:new Point(10,20),
             //    style : h
             // },
-            styleId : "S1923",
+            //styleId : "S1923",
             id: u
             });
             c.setZIndex(9999);
@@ -305,22 +306,50 @@ function initDrag(){
 	if(!wp){
 		map.dgObject = new Waypoints();
 	}
+	dragArr.push(startPoint);
+	
 	sogou.maps.SEvent.addListener(map.dgObject,'draging',draging);
 	sogou.maps.SEvent.addListener(map.dgObject,'dragend',dragend);
 }
 
+var ol=null,
+start,
+end,
+dl=0,
+max=0,
+isMove=false,
+st=null,
+stime,
+speed=400,
+isFirst=1,
+isdraging=0;
 function draging(a,b,c){
-	console.log(a,b,c);
-	var bs=toArr(b),tn;
-		if(!st)st=now();
-		var dt=now();
-// 		if(dt-st<=speed&&!isFirst)return;
-// 		else{st=dt;isMove=true;isFirst=0}
-// 		if(isdraging==0){
-// 		    ol=null;
-// 			stime=now();
-// 			isdraging=1;
-// 			dl=0;
+	//var bs=toArr(b),tn;
+	var tn;
+	if(!st)st=Date.now();
+	var dt=Date.now();
+ 	if(dt-st<=speed&&!isFirst)return;
+ 	else{
+ 		st=dt;
+ 		isMove=true;
+ 		isFirst=0;
+ 		var dra = new sogou.maps.Point(a.point.x,a.point.y);
+ 		console.log(a.tar);
+ 		dragArr.push(dra);
+ 	};
+ 		// if(isdraging==0){
+ 		//     ol=null;
+ 		// 	stime=now();
+ 		// 	isdraging=1;
+ 		// 	dl=0;
+ 		// 	for(var i=0;i<b.length;i++){
+
+ 		// 	}
+ 			//action=&caseid=xxx&points=x1,y1;x2,y2;x3,y3
+
+
+ 			//求路
+ 			//拖拽之后
 // 			for(var i=0;i<bs.length;i++){
 // 			    tn=bs[i]._node
 // 				while(tn.parentNode){
@@ -394,9 +423,25 @@ function draging(a,b,c){
 // 		};
 // 		scs.send(null,url,_cb_,true,function(a,b){_cb_("",a,b)});
 }
-function dragend(){
-	console.log('dragend');
+function getPoints(){
+	var strArr = [];
+	for(var i=0,len = dragArr.length;i<len;i++){
+		strArr.push(dragArr[i].x + ',' + dragArr[i].y);
+	}
+	return strArr.join(';');
 }
+function dragend(a,b,c){
+	dragArr.push(endPoint);
+	var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + getPoints();
+	console.log(url);
+	//action=&caseid=xxx&points=x1,y1;x2,y2;x3,y3;
+}
+
+
+
+
+
+
 
 
 
@@ -533,6 +578,7 @@ module.exports = {
 	},
 	methods:{
 		getData(){
+			CaseID = this.$route.params.id;
 			var url = API_ROOT  + this.$route.params.type + '&caseid='+ this.$route.params.id;
 			console.log(url);
 			//普通匹配 getevaroute  匹配校验 getmatchroute  getevaroute  getmatchroute
