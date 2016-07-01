@@ -1,8 +1,8 @@
 <template>
 	<div class="taskSearchTool">
 		<span>创建时间</span>
-		<input type="text" @click="showCalendar" v-model="value" placeholder="请输入日期">
-    	<calendar :show.sync="show" :value.sync="value" :x="x" :y="y" :begin="begin" :end="end" :range="range"></calendar>
+		<date-picker :time.sync="startTime" :option="startOption"></date-picker>-
+        <date-picker :time.sync="endTime" :option="endOption"></date-picker>
     	<span>任务类型</span>
     	<select v-model="typeSele">
     		<option v-for="item in typesList" :value="item.text">{{item.text}}</option>
@@ -59,7 +59,7 @@
 </template>
 <script>
 
-import calendar from '../components/calendar';
+import datePicker from '../components/vue-datepicker.vue';
 import confirm from '../components/DeleteConfirm';
 import Turnpage from '../components/TurnPage.vue';
 import API_ROOT from '../store/resources.js';
@@ -67,14 +67,29 @@ import API_ROOT from '../store/resources.js';
 module.exports = {
     data() {
         return {
-            show:false,
-            type:"datetime", //date datetime
-            value:"",
-            begin:"",
-            end:"",
-            x:0,
-            y:0,
-            range:true,//是否多选
+            //时间相关
+            startTime:'',
+            startOption:{
+                type: 'min',
+                month: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                format: 'YYYY-MM-DD HH:mm',
+                placeholder: '开始时间',
+                buttons: {
+                    ok: '确定',
+                    cancel: '取消'
+                }
+            },
+            endTime:'',
+            endOption:{
+                type: 'min',
+                month: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                format: 'YYYY-MM-DD HH:mm',
+                placeholder: '截止时间',
+                buttons: {
+                    ok: '确定',
+                    cancel: '取消'
+                }
+            },
 
 
             //items:[],
@@ -110,8 +125,6 @@ module.exports = {
         }
     },
     ready(){
-		// this.$http.post(url,postdata,function callback）
-		// Vue.http.options.emulateJSON = true;
         this.getData();
 
     },
@@ -135,10 +148,13 @@ module.exports = {
             //先清空列表
             this.items = [];
             var urlArr = [API_ROOT+'gettask'];
-            console.log(this.value);
-            // if(this.value){
-            //     urlArr.push('ctime='+ this.value);
-            // }
+            if(this.startTime){
+                var timeStr = 'ctime='+ this.startTime + ':00';
+                if(this.endTime){
+                    timeStr +=',' + this.endTime + ':00';
+                }
+                urlArr.push(timeStr);
+            }
             if(this.typeSele){
                 urlArr.push('type='+ this.typeSele);
             }
@@ -185,7 +201,7 @@ module.exports = {
         }
     },
     components:{
-        calendar,
+        datePicker,
         confirm,
         Turnpage
     },

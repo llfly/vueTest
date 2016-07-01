@@ -1,8 +1,10 @@
 <template>
 	<div class="taskSearchTool">
-		<span>评价时间</span>
-		<input type="text" @click="showCalendar" v-model="value" placeholder="请输入日期">
-    	<calendar :show.sync="show" :value.sync="value" :x="x" :y="y" :begin="begin" :end="end" :range="range"></calendar>
+		<select v-model="timeTypeSele">
+            <option v-for="item in timeTypeList" :value="item.value">{{item.text}}</option>
+        </select>
+		<date-picker :time.sync="startTime" :option="startOption"></date-picker>-
+        <date-picker :time.sync="endTime" :option="endOption"></date-picker>
     	<span>类型</span>
     	<select v-model="typesSele">
     		<option v-for="item in typesList" :value="item.text">{{item.text}}</option>
@@ -12,14 +14,14 @@
 			<option v-for="item in evalsList" :value="item.text">{{item.text}}</option>
 		</select>
 		<span>标签</span>
-		<select>
-			<option v-for="item in tagsList" :value="item.text" :selected="$index == 0 ? true : false">{{item.text}}</option>
+		<select v-model="labelSele">
+			<option v-for="item in tagsList" :value="item.text">{{item.text}}</option>
 		</select>
 		<span>最佳方案</span>
 		<select v-model="bestDecSele">
     		<option v-for="item in bestDecList" :value="item.text">{{item.text}}</option>
 		</select>
-    	<button type="button">搜索</button>
+    	<button type="button" @click="getData()">搜索</button>
 	</div>
 	<div>
 		<table class="taskSearchShow">
@@ -74,7 +76,7 @@
     <confirm v-show="delShow" :cur-item='checkedDel'></confirm>
 </template>
 <script>
-import calendar from '../components/calendar';
+import datePicker from '../components/vue-datepicker.vue'
 import confirm from '../components/DeleteConfirm';
 import Turnpage from '../components/TurnPage.vue';
 import API_ROOT from '../store/resources.js';
@@ -83,14 +85,41 @@ import API_ROOT from '../store/resources.js';
 	module.exports = {
     data() {
         return {
-            show:false,
-            type:"date", //date datetime
-            value:"",
-            // begin:"2015-12-20",
-            // end:"2015-12-25",
-            x:0,
-            y:0,
-            range:true,//是否多选
+             //时间相关
+            startTime:'',
+            startOption:{
+                type: 'min',
+                month: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                format: 'YYYY-MM-DD HH:mm',
+                placeholder: '开始时间',
+                buttons: {
+                    ok: '确定',
+                    cancel: '取消'
+                }
+            },
+            endTime:'',
+            endOption:{
+                type: 'min',
+                month: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                format: 'YYYY-MM-DD HH:mm',
+                placeholder: '截止时间',
+                buttons: {
+                    ok: '确定',
+                    cancel: '取消'
+                }
+            },
+            //评测时间
+            timeTypeSele:'etime',
+            timeTypeList:[{
+                text:'评价时间',
+                value:'etime'
+            },{
+                text:'路况时间',
+                value:'lktime'
+            }],
+
+
+
 
             //类型 types
             typesSele:'全部',
@@ -106,6 +135,7 @@ import API_ROOT from '../store/resources.js';
             }],
             //评价 evals	标签 tags
             evalsSele:'全部',
+            labelSele:'',
             evalsList:[{
 				text: '全部',
 				tags: [
@@ -123,6 +153,7 @@ import API_ROOT from '../store/resources.js';
 				{
 					text: '合理',
 					tags: [
+                        {text: '全部'},
 						{text: '未定'},
 						{text: '最佳'},
 						{text: "非最佳"}
@@ -131,6 +162,7 @@ import API_ROOT from '../store/resources.js';
 				{
 					text:'不合理',
 					tags:[
+                        {text: '全部'},
 						{text:'绕路'},
 						{text:'畸形'},
 						{text:'不避堵'},
@@ -191,10 +223,13 @@ import API_ROOT from '../store/resources.js';
             //先清空列表
             this.items = [];
             var urlArr = [API_ROOT+'getcase'];
-            // if(this.value){
-            //     urlArr.push('ctime='+ this.value);
-            // }
-
+            if(this.startTime){
+                var timeStr = this.timeTypeSele + '=' + this.startTime + ':00';
+                if(this.endTime){
+                    timeStr +=',' + this.endTime + ':00';
+                }
+                urlArr.push(timeStr);
+            }
             // etime=xxx,xxx&lktime=xxx,xxx&
             // eva=xxx&label=xxx&cost=xx,xx&
             // dis=xxx,xxx&poi=xxx&id=xxx&own=xxx&page=xxx(从1开始)
@@ -204,7 +239,9 @@ import API_ROOT from '../store/resources.js';
             }
             if(this.evalsSele){
                 urlArr.push('eva=' + this.evalsSele);
-                //urlArr.push('label=' + this.ev)
+            }
+            if(this.labelSele){
+                urlArr.push('label=' + this.labelSele)
             }
             if(this.page){
                 urlArr.push('page=' + this.page);
@@ -232,8 +269,8 @@ import API_ROOT from '../store/resources.js';
                     cost:data[i].cost,
                     dis:data[i].dis + '公里',
                     lktime:data[i].lktime,
-                    eva:data[i].eva,
-                    label:data[i].label,
+                    eva:data[i].eva!='null'?data[i].eva:'',
+                    label:data[i].label!='null'?data[i].label:'',
                     city:data[i].city,
                     etime:data[i].etime,
                     own:data[i].own
@@ -263,20 +300,11 @@ import API_ROOT from '../store/resources.js';
                 setTimeout(function(){
                     iframe.remove();
                 },2000);
-                // appendChild(iframe);
-                // iframe.remove();
-                // console.log(url);
-                // this.$http.get(url,'',{headers:{'Content-Type':'text/plain'}}).then((response) =>{
-                //     console.log(response.json());
-                //     //console.log(response.headers());
-                // }).catch(function(){
-                //     console.log('请求发送失败');
-                // });
             }
         }
     },
     components:{
-        calendar,
+        datePicker,
         confirm,
         Turnpage
     },
@@ -313,14 +341,16 @@ import API_ROOT from '../store/resources.js';
     	tagsList: {
       		get: function() {
         		let that = this;
-        		return this.evalsList.filter(function(item) {
+        		var tags = this.evalsList.filter(function(item) {
           			return item.text == that.evalsSele;
         		})[0].tags;
+                //console.log(tags);
+                this.labelSele = tags[0].text;
+                return tags;
 			}
     	}
   	}
 }
 </script>
 <style>
-	
 </style>

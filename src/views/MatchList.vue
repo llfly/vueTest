@@ -3,8 +3,8 @@
         <select v-model="timeTypeSele">
             <option v-for="item in timeTypeList" :value="item.value">{{item.text}}</option>
         </select>
-        <input type="text" @click="showCalendar" v-model="value" placeholder="请输入日期">
-        <calendar :show.sync="show" :value.sync="value" :x="x" :y="y" :begin="begin" :end="end" :range="range"></calendar>
+        <date-picker :time.sync="startTime" :option="startOption"></date-picker>-
+        <date-picker :time.sync="endTime" :option="endOption"></date-picker>
         <span>类型</span>
         <select v-model="typesSele">
             <option v-for="item in typesList" :value="item.text">{{item.text}}</option>
@@ -64,7 +64,7 @@
                     <td>{{item.retime}}</td>
                     <td>{{item.own}}</td>
                     <td>
-                        <span v-link="{name:'mainmap',params:{id:item.caseid,type:'getmatchroute'}}">查看</span>
+                        <span v-link="{name:'mainmap',params:{id:item.caseid,type:'getmatchroute',taskid:this.$route.params.id}}">查看</span>
                         &nbsp;<span @click="delItem(item.caseid)">删除</span>
                     </td>
                 </tr>
@@ -119,7 +119,7 @@
     </div>
 </template>
 <script>
-import calendar from '../components/calendar.vue';
+import datePicker from '../components/vue-datepicker.vue';
 import confirm from '../components/DeleteConfirm';
 import Turnpage from '../components/TurnPage.vue';
 import API_ROOT from '../store/resources.js';
@@ -127,14 +127,29 @@ import API_ROOT from '../store/resources.js';
 module.exports = {
     data() {
         return {
-            show:false,
-            type:"date", //date datetime
-            // value:"2015-12-11",
-            // begin:"2015-12-20",
-            // end:"2015-12-25",
-            x:0,
-            y:0,
-            range:true,//是否多选
+            //时间相关
+            startTime:'',
+            startOption:{
+                type: 'min',
+                month: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                format: 'YYYY-MM-DD HH:mm',
+                placeholder: '开始时间',
+                buttons: {
+                    ok: '确定',
+                    cancel: '取消'
+                }
+            },
+            endTime:'',
+            endOption:{
+                type: 'min',
+                month: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                format: 'YYYY-MM-DD HH:mm',
+                placeholder: '截止时间',
+                buttons: {
+                    ok: '确定',
+                    cancel: '取消'
+                }
+            },
 
 
             //评测时间
@@ -235,10 +250,13 @@ module.exports = {
             this.items = [];
             var urlArr = [API_ROOT+'getmatch'];
             urlArr.push('taskid='+this.$route.params.id);
-            //匹配时间，重评时间
-            // if(this.value){//etime,lktime  timeTypeSele
-            //     urlArr.push(this.timeTypeSele +'='+ this.value);
-            // }
+            if(this.startTime){
+                var timeStr = this.timeTypeSele +'='+ this.startTime + ':00';
+                if(this.endTime){
+                    timeStr +=',' + this.endTime + ':00';
+                }
+                urlArr.push(timeStr);
+            }
             if(this.typesSele){
                 urlArr.push('type='+ this.typesSele);
             }
@@ -268,7 +286,6 @@ module.exports = {
             });
         },
         turnData(data){
-            console.log(data);
             this.all = data.pagenum;
             data = data.cases;
             for(var i = 0,len = data.length;i<len;i++){
@@ -316,7 +333,6 @@ module.exports = {
             var url = API_ROOT + 'getmatchstat' + '&taskid=' + this.$route.params.id;
             this.$http.get(url, function(data) {
                 if(data.status == 'success'){
-                    console.log(data);
                    this.dealTab(data);
                 }
             }).catch(function(data, status, request) {
@@ -333,7 +349,7 @@ module.exports = {
         }
     },
     components:{
-        calendar,
+        datePicker,
         confirm,
         Turnpage
     },
@@ -349,7 +365,6 @@ module.exports = {
                     //与后台交互，清空要删除的数组
                     var url = API_ROOT + 'delmatch' + '&user=' + sessionStorage.user + '&caseid='+this.checkedDel.join(',') +'&taskid=' + this.$route.params.id;
                     this.$http.get(url,function(data){
-                        console.log(data);
                     }).catch(function(data,status,request){
                         console.log('fail' + status + "," + request);
                     });

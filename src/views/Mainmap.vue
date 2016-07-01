@@ -1,8 +1,8 @@
 <template>
-	<div class="leftMainBox">
+	<div class="leftMainBox"  v-cloak>
 		<Plan-info :start.sync="start" :end.sync="end"  :lktime.sync="lktime"  :eva.sync="eva"></Plan-info>
 		<div class="plans">
-			<Planbox v-for="item in leftInfo" track-by="$index" :name='item.name' :time='item.cost' :dist='item.dis' :traffic-light='item.trafficLight' :traffic-block='item.trafficBlock' :pathway="item.pathway" :road-condi="item.roadCondi" :type="item.type" :is-eva.sync="isEva" :plan-is-hide.sync='item.planIsHide'  :is-best-plan.sync="isBestPlan" @click="turnPlan(item.index)" :index="item.index" :class="{'bgColor':item.bgcolor}" :plan-type="planType" :label="item.label"></Planbox>
+			<Planbox v-for="item in leftInfo" track-by="$index" :name.sync='item.name' :time='item.cost' :dist='item.dis' :traffic-light='item.trafficLight' :traffic-block='item.trafficBlock' :pathway="item.pathway" :road-condi="item.roadCondi" :type="item.type" :is-eva.sync="isEva" :plan-is-hide.sync='item.planIsHide'  :is-best-plan.sync="isBestPlan" @click="turnPlan(item.index)" :index="item.index" :class="{'bgColor':item.bgcolor}" :plan-type="planType" :label="item.label" :custom-btn="item.customBtn"></Planbox>
 			<span class="showHidePlan" v-show="planHasHide" @click="showAllPlan()">显示隐藏方案</span>
 		</div>
 	</div>
@@ -13,17 +13,17 @@
 	<Bestplan v-show="BestplanShow" :is-best-plan.sync="isBestPlan"></Bestplan>
 </template>
 <script>
-
 import PlanInfo from '../components/Planinfo';
 import Planbox from '../components/Planbox.vue';
 import Assess from '../components/Assess.vue';
 import Bestplan from '../components/Bestplan.vue';
 import API_ROOT from '../store/resources.js';
+import Vue from 'vue';
 // import Sgmap from './Sgmap'
 
 //地图相关
 var lineObj = [];
-
+var DATA = [];
 //原始数据
 var links = [];
 var points = [];
@@ -32,10 +32,10 @@ var bounds = null;
 var drawLinePoints = [];
 var lines = [];
 var startPoint,endPoint;
-var CaseID;
+var CaseID,CaseTYPE;
 var dragArr = [];
-//var path = [];
-
+var intObj = null;
+var postData = [];//要向服务器提交的数据
 
 function init(){
 	//实例化地图
@@ -46,7 +46,8 @@ function init(){
 		'mapTypeId': sogou.maps.MapTypeId.ROADMAP
 	}
 	map = new sogou.maps.Map(document.getElementById("map_canvas"), myOptions);
-	initDrag();
+	if(CaseTYPE != 'dispcase')
+		initDrag();
 	fitBounds();
 	initStartAndEnd(startPoint,'start');
 	initStartAndEnd(endPoint,'end');
@@ -57,12 +58,11 @@ function init(){
 	//对处理之后的点分别进行划线操作
 	if(drawLinePoints){
 		for(i=0,len=drawLinePoints.length;i<len;i++){
-			lines.push(drawMap(i,drawLinePoints[i]));
+			lines.push(drawMap(links[i],drawLinePoints[i]));
 		}
 	}
 	map.fitBounds(bounds);
 }
-
 function initStartAndEnd(pos,type){
 	var url = type == 'start' ? 'http://map.sogou.com/m/webapp/images/startIcon.png':'http://map.sogou.com/m/webapp/images/endIcon.png';
 	var image = new sogou.maps.MarkerImage(url,new sogou.maps.Size(30, 30),new sogou.maps.Point(0,0),new sogou.maps.Point(15, 30));
@@ -92,22 +92,21 @@ function dealPoints(link,point){
 	return path;
 	//drawMap();
 }
-function drawMap(index,path){
+function drawMap(color,path){
 	var colorArr = ['#0000ff','#00ff00','#ffff00','#ee4444','#990000'];
 	var pathArr = [];
-	//console.log(path.length);
-	//console.log(path[36]);
 	for(var i=0,len = path.length;i<len;i++){
 		try{
 			var p = new sogou.maps.Polyline({
 	            'path':path[i],
 	            "map": map,
 	            //strokeColor: "#FF0000",
-			     strokeOpacity: 0.2,
-			     strokeWeight: 5,
+			    opacity: 0.2,
+			    strokeWeight: 5,
 	            //disableLabel: true,
-	            strokeColor: colorArr[links[index][i].level],
-	            dashstyle:"Solid"
+	            strokeColor: colorArr[color[i].level],
+	            dashstyle:"Solid",
+	            //isFixed:true
         	});
         	if(map.dgObject){
         		map.dgObject.addTarget(p);
@@ -118,7 +117,6 @@ function drawMap(index,path){
         	console.log(ex);
     	}
 	}
-	//console.log(1);
 	return pathArr;
 	//map.fitBounds(bounds);
 	//console.log(pathArr);
@@ -131,21 +129,20 @@ function fitBounds(){
 		}
 	}
 }
-
 function selectPath(index){
 	for(var i=0,len= lines.length;i<len;i++){
 		for(var j=0,len1 = lines[i].length;j<len1;j++){
 			lines[i][j].setStyle({"StyleStroke":{opacity:"0.2",weight:'3px'}});
 		}
 	}
-	for(i=0,len= lines[index].length;i<len;i++){
-		lines[index][i].setStyle({"StyleStroke":{opacity:"1",weight:'5px'}});
+	if(index || index == 0){
+			for(i=0,len= lines[index].length;i<len;i++){
+			lines[index][i].setStyle({"StyleStroke":{opacity:"1",weight:'5px'}});
+		}
 	}
 }
 
 //拖拽点相关
-
-
 var wp,evt=sogou.maps.SEvent.trigger;
 function point2lineDistance(x0,y0,x1,y1,x2,y2){
 	var a=0;if(x1==x2&&y1==y2)
@@ -162,6 +159,121 @@ function point2lineDistance(x0,y0,x1,y1,x2,y2){
 	}
 	return a
 }
+function initDrag(){
+	if(!wp){
+		map.dgObject = new Waypoints();
+	}
+	dragArr.push(startPoint);
+
+	sogou.maps.SEvent.addListener(map.dgObject,'draging',draging);
+	sogou.maps.SEvent.addListener(map.dgObject,'dragend',dragend);
+}
+
+var ol=null,isMove=false,st=null,speed=400,isFirst=1,isdraging=0;
+var dragLinesArr;
+function draging(a,b,c){
+	var tn;
+	if(!st)st=Date.now();
+	var dt=Date.now();
+ 	if(dt-st<=speed&&!isFirst)return;
+ 	else{
+ 		st=dt;
+ 		isMove=true;
+ 		isFirst=0;
+ 	}
+ 	if(isdraging==0){
+		isdraging=1;
+		//清除所有拖拽点
+ 	}
+
+ 	if(dragLinesArr&&dragLinesArr.length){
+ 		for(var i=0,len = dragLinesArr.length;i<len;i++){
+			dragLinesArr[i].setMap(null);
+		}
+ 	}
+	//dragLinesArr = null;
+ 	var dra = new sogou.maps.Point(a.point.x,a.point.y);
+ 	dragArr.push(dra);
+ 	dragArr.push(endPoint);
+	var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + getPoints();
+	dragArr.length = 1;
+	//map.clearAll();
+	console.log(url);
+	getJSONP(url,getDragData);
+	intObj = null;
+}
+function getPoints(){
+	var strArr = [];
+	for(var i=0,len = dragArr.length;i<len;i++){
+		strArr.push(dragArr[i].x + ',' + dragArr[i].y);
+	}
+	return strArr.join(';');
+}
+function dragend(a,b,c){
+	// var dra = new sogou.maps.Point(a.point.x,a.point.y);
+ // 	dragArr.push(dra);
+ // 	dragArr.push(endPoint);
+	// var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + getPoints();
+	// dragArr.length = 1;
+	// console.log(url);
+	// getJSONP(url,getDragData);
+	DATA.push(intObj);
+	lines.push(dragLinesArr);
+	//selectPath(lines.length-1);
+	intObj = null;
+	//dragArr.push(endPoint);
+	//var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + getPoints();
+	//getJSONP(url,getDragData);
+	isdraging=0;
+	isFirst=1;
+	isMove=false;
+}
+function getDragData(response){
+	//获取拖拽数据
+	//生成新路线
+	//生成新框
+	//map.clearAll();
+	selectPath();
+	var data = response.routes[0];
+	var path = dealPoints(data.links,data.points);
+	var obj = {
+		index:vm.data().leftInfo.length,
+		bgcolor:false,
+		planIsHide:true,
+		name:'自定义',
+		eva:data.eva,
+		label:data.label,
+		reason:data.reason,
+		cost:fixed2(data.cost) + '分钟',
+		dis:fixed2(data.dis/1000) + '公里',
+		customBtn:true,
+	};
+	postData[obj.index] = response;
+	if(data.light){
+		obj.trafficLight = data.light + '个红绿灯';
+		if(data.left)
+			obj.trafficLight +='('+ data.left + '个左转弯)';
+	}
+	if(data.jamnum){
+		obj.trafficBlock = data.routes[i].jamnum+ '段拥堵';
+ 		if(data.jamlen)
+			obj.trafficBlock += '，共'+ fixed2(data.jamlen/1000) +'公里';
+	}
+	if(data.lanelen){
+		obj.pathway = '小路' + fixed2(data.lanelen/1000) + '公里';
+	}
+	if( data.lklen){
+		obj.roadCondi = '有路况' + fixed2(data.lklen/1000) + '公里';
+	}
+	obj.type = '新自定义';
+	dragLinesArr = drawMap(data.links,path);
+	for(var i=0,len= dragLinesArr.length;i<len;i++){
+		dragLinesArr[i].setStyle({"StyleStroke":{opacity:"1",weight:'5px'}});
+	}
+	intObj = obj;
+}
+
+//waypoints对象
 function Waypoints()
 {
 	var t=this,m;
@@ -251,7 +363,6 @@ wyp.onMouseMove=function(a){
 	}
 	else if(u) t.hide(u,e);
 };
-
 wyp.onMouseOver=function(a,b){
 	var t=this,c=t.tp,d,e,f,g,h,k,u="WP"+_uniqueId(),m=t.m;
 	if(a&&a.fType=="L"&&b){
@@ -290,162 +401,15 @@ wyp.onMouseOver=function(a,b){
     c.getLabelObj() && c.getLabelObj().setStyle(h);
 	}
 };
-
 wyp.show=function(a,b){
 	var t = this;
 	a.setVisible(true);
 }
-
 wyp.hide=function(a,b){
     if(!this.isdging){
         a.setVisible(false);
     }
 }
-
-function initDrag(){
-	if(!wp){
-		map.dgObject = new Waypoints();
-	}
-	dragArr.push(startPoint);
-	
-	sogou.maps.SEvent.addListener(map.dgObject,'draging',draging);
-	sogou.maps.SEvent.addListener(map.dgObject,'dragend',dragend);
-}
-
-var ol=null,
-start,
-end,
-dl=0,
-max=0,
-isMove=false,
-st=null,
-stime,
-speed=400,
-isFirst=1,
-isdraging=0;
-function draging(a,b,c){
-	//var bs=toArr(b),tn;
-	var tn;
-	if(!st)st=Date.now();
-	var dt=Date.now();
- 	if(dt-st<=speed&&!isFirst)return;
- 	else{
- 		st=dt;
- 		isMove=true;
- 		isFirst=0;
- 		var dra = new sogou.maps.Point(a.point.x,a.point.y);
- 		console.log(a.tar);
- 		dragArr.push(dra);
- 	};
- 		// if(isdraging==0){
- 		//     ol=null;
- 		// 	stime=now();
- 		// 	isdraging=1;
- 		// 	dl=0;
- 		// 	for(var i=0;i<b.length;i++){
-
- 		// 	}
- 			//action=&caseid=xxx&points=x1,y1;x2,y2;x3,y3
-
-
- 			//求路
- 			//拖拽之后
-// 			for(var i=0;i<bs.length;i++){
-// 			    tn=bs[i]._node
-// 				while(tn.parentNode){
-//                     tn=tn.parentNode;
-//                 }
-// 				if(i==0){
-// 					start=tn.start;
-// 				}
-// 				if(i==bs.length-1){
-// 					end=tn.end;
-// 				}
-// 				dl+=tn.attributes.distance;
-//                 if(tn&&tn.childNodes)
-//                     forArray(tn.childNodes,function(f){
-//                         me.map.removeFeature(f.fn);
-//                     });
-// 			}
-//             clearAllViaFn();
-// 			if(c!="from"&&c!="to"&&(!b.length||b.length<2))ol=tn;
-// 		}
-// 		var cwp=a,dra = new Point(a.point.x,a.point.y);
-//         me.host.mode = 2;
-// 		if(c=="from") {
-//             me.host.from.coord = a.point;
-//             me.host.from.type = "coord";
-//             start = a.point;
-//         }else if(c=="to") {
-//             me.host.to.coord = a.point;
-//             me.host.to.type = "coord";
-//             end = a.point;
-//         }else if(c && c.indexOf("via")>-1){
-//             var idx = parseInt(c.split("|")[1]);
-//             me.host.wayPoint[idx-1].coord = a.point;
-//             me.host.wayPoint[idx-1].type = "coord";
-//         }
-// 		if(c=="from"||c=="to") {
-//             a=null;
-//         }else if(c && c.indexOf("via")>-1){
-//            me.host.dragObject["point"] = a.point;
-//         }else{
-//             var idxArr = getWayNodesIndex(bs[0]);  //[route index,way node idx] 0:线路的idx 1：当前前拖拽点应为的idx
-//             if(a.tar && (a.tar.idx || a.tar.idx == 0)) {    //如果拖动本身是拖动点，处理拖动类型。 逻辑有点乱，可以优化。
-//                 me.host.dragObject.idx = idxArr[1];    //拖拽点得索引
-//                 me.host.dragObject.rId = idxArr[0];     //道路的索引
-//                 me.host.dragObject["point"] =  me.host.dragPoint[idxArr[0]][idxArr[1]];
-//             }
-//             if(!me.host.dragObject["point"]) {      //如果产生的是新的拖拽点，就添加到拖拽对象中。
-//                  me.host.dragPoint[idxArr[0]].splice(idxArr[1],0,dra);
-//                  me.host.dragObject.idx =  idxArr[1];
-//                  me.host.dragObject.rId = idxArr[0];
-// //                me.host.dragPoint.push(dra);
-//             }else{
-//                me.host.dragPoint[idxArr[0]][me.host.dragObject.idx] = dra;   //更新新的拖动对象。
-//             }
-//             me.host.dragObject["point"] = dra;
-//         }
-//         var url = me.host.getDragReqUrl(start,end);
-// 		function _cb_(a1){
-// 			if(!isMove) return;
-// 			var pn=null,fn,m;
-//             m = cwp.tar;
-//             cwp.tar.setTitle(a1.response.Waypoints.Waypoint[1].caption+"("+(me.result.distance-dl+a1.response.distance)/1000+"公里)");
-// 			pn=FeatureNode.loadFromJson(a1.response.Route.Feature);
-// 			fn=gf("dragLine_Temp");
-// 			if(fn){
-//                 me.map.removeFeature(fn);
-// 			}
-//             pn.style.id="L50";
-// 			pn.id="dragLine_Temp";
-// 			me.map.addFeature(pn);
-// 		};
-// 		scs.send(null,url,_cb_,true,function(a,b){_cb_("",a,b)});
-}
-function getPoints(){
-	var strArr = [];
-	for(var i=0,len = dragArr.length;i<len;i++){
-		strArr.push(dragArr[i].x + ',' + dragArr[i].y);
-	}
-	return strArr.join(';');
-}
-function dragend(a,b,c){
-	dragArr.push(endPoint);
-	var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + getPoints();
-	console.log(url);
-	//action=&caseid=xxx&points=x1,y1;x2,y2;x3,y3;
-}
-
-
-
-
-
-
-
-
-
-
 /**
 *过滤限定了显示级别的点，只有显示级别低于等于当前缩放级别的点才被记录下来
 *@param a Array[Point]	所有的点坐标 [Point]
@@ -453,6 +417,37 @@ function dragend(a,b,c){
 *@param c Number	当前的缩放级别
 *@return Array[Point] 符合当前缩放级别下显示的点
 */
+function fixed2(str){
+	return parseFloat(str).toFixed(2);
+}
+
+function getJSONP(url, callback) {
+    if (!url) {
+        return;
+    }
+    var a = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']; //定义一个数组以便产生随机函数名
+    var r1 = Math.floor(Math.random() * 10);
+    var r2 = Math.floor(Math.random() * 10);
+    var r3 = Math.floor(Math.random() * 10);
+    var name = 'getJSONP' + a[r1] + a[r2] + a[r3];
+    url += '&cb=' + name;
+    var script = document.createElement('script');
+    //定义被脚本执行的回调函数
+    window[name] = function (e) {
+        try {
+        	callback && callback(e);
+        } catch (e) {
+        	console.log(e);
+        }
+        finally {//最后删除该函数与script元素
+            delete window[name];
+            script.parentNode.removeChild(script);
+        }
+
+    }
+    script.src = url;
+    document.getElementsByTagName('head')[0].appendChild(script);
+}
 function _filterNodes(a,b,c)
 {
     var i,j,d=[];
@@ -502,7 +497,7 @@ function _offsetPositionAbsolute(a) {
 	return b
 }
 
-module.exports = {
+var vm = {
 	data(){
 		return{
 			//基本信息相关
@@ -534,7 +529,7 @@ module.exports = {
 			BestplanShow:false,
 
 			//左侧信息
-			leftInfo:[],
+			leftInfo:DATA,
 
 			//显示与隐藏相关
 			planHasHide:false,
@@ -561,25 +556,36 @@ module.exports = {
 	// },
 	route:{
 		data(){
+			this.init();
+		}
+	},
+	methods:{
+		init(){
 			map&&map.clearAll();
 			links = [];
 			points = [];
 			bounds = null;
 			drawLinePoints = [];
 			lines = [];
-			this.leftInfo = [];
+			//this.leftInfo = [];
+			DATA = [];
+			//postData是否需要更新?
+			postData = [];
+			this.leftInfo = DATA;
 			this.getData();
 			var that = this;
 			setTimeout(function(){
 				if(that.leftInfo.length)
 				that.turnPlan(0);
 			},2000);
-		}
-	},
-	methods:{
+		},
 		getData(){
 			CaseID = this.$route.params.id;
-			var url = API_ROOT  + this.$route.params.type + '&caseid='+ this.$route.params.id;
+			CaseTYPE = this.$route.params.type;
+			var url = API_ROOT  + CaseTYPE + '&caseid='+ this.$route.params.id;
+			if(CaseTYPE == 'getmatchroute'){
+				url +='&taskid='+ this.$route.params.taskid;
+			}
 			console.log(url);
 			//普通匹配 getevaroute  匹配校验 getmatchroute  getevaroute  getmatchroute
 			this.planType = this.$route.params.type;
@@ -619,6 +625,7 @@ module.exports = {
 					reason: data.routes[i].reason,//理由
 					cost: data.routes[i].cost + '分钟',//时间:单位分钟
 					dis: data.routes[i].dis/1000 + '公里',//长度：单位米
+					customBtn:false,//是否显示保存按钮
 				}
 				if(data.routes[i].light){
 					obj.trafficLight = data.routes[i].light+'个红绿灯';
@@ -638,27 +645,18 @@ module.exports = {
 				}
 				//['线上方案','世纪高通','全程畅通','老自定义','新自定义','历史不合理']
 
-				var exp = new RegExp("线上方案|世纪高通|全程畅通|历史不合理|新结果|老自定义|历史方案");
+				var exp = new RegExp("线上方案|世纪高通|全程畅通|历史不合理|新结果|历史方案");
 				//console.log(exp.test(data.routes[i].name));
 				if(exp.test(data.routes[i].name)){
 					obj.type = data.routes[i].name.replace(/\d/,'');
 				}else{
-					obj.type = '新自定义';
+					obj.type = '老自定义';
 				}
-				// if(data.routes[i].name == '线上方案' || data.routes[i].name == '世纪高通'  || data.routes[i].name == '全程畅通' ||
-				// 	data.routes[i].name == '历史不合理' || data.routes[i].name == '新结果' || data.routes[i].name == '老自定义'
-				// ){
-				// 	obj.type = data.routes[i].name;
-				// }else{
-				// 	obj.type = '世纪高通';//'新自定义';
-				// }
-				this.leftInfo.push(obj);
+				//this.leftInfo.push(obj);
+				DATA.push(obj);
 			}
 
 			init();
-			//dealPoints();
-			//drawMap();
-			//console.log(this.rous[0]);
 		},
 		turnPlan(index){
 			//console.log(this);// = '#ff0000';
@@ -702,21 +700,26 @@ module.exports = {
 					var url = API_ROOT + 'submiteva';
 
 					this.$http.post(url,{
-						taskid:this.$route.params.id,
-						user:sessionStorage.user,
-						eva:[{
-							caseid:this.caseid,
-							name:this.evaPlanCur.name,
-							cost:0,dis:0,
-							eva:read,
-							label:sead,
-							reason:assessText,
+						"taskid":+this.$route.params.id,
+						"user":sessionStorage.user,
+						"evas":[{
+							"caseid":+this.caseid,
+							"name":this.evaPlanCur.name,
+							"cost":0,"dis":0,
+							"eva":read,
+							"label":sead,
+							"reason":assessText,
 						}]
+					},{
+						headers:{
+							"Content-Type":"application/x-www-form-urlencoded"
+						}
 					}).then((response)=>{
 							//console.log(response);
-							alert('上传成功');
+							if(response.data.status == "success")
+							alert('评价成功');
 						},(response)=>{
-							alert('上传失败');
+							alert('评价失败');
 						});
 					//修改逻辑为重新评价
 					this.isEva = true;
@@ -735,6 +738,7 @@ module.exports = {
 		},
 		bestPlanBox(bool,assessText){
 			if(bool){
+				this.bestPlanCur.label = this.isBestPlan ?"null":"最佳";
 				//上传数据
 				 //this.$http.post(
 				var url = API_ROOT + 'submiteva';
@@ -742,21 +746,27 @@ module.exports = {
 				//设为最佳 or 取消最佳
 				if(sessionStorage.user){
 					this.$http.post(url,{
-						taskid:this.$route.params.id,
-						user:sessionStorage.user,
-						eva:[{
-							caseid:this.caseid,
-							name:this.bestPlanCur.name,
-							cost:0,dis:0,
-							eva:this.bestPlanCur.eva,
-							label:this.bestPlanCur.label,
-							reason:assessText,
+						"status":"success",
+						"taskid":+this.$route.params.id,
+						"user":sessionStorage.user,
+						"evas":[{
+							"caseid":+this.caseid,
+							"name":this.bestPlanCur.name,
+							"cost":0,"dis":0,
+							"eva":this.bestPlanCur.eva,
+							"label":this.bestPlanCur.label,
+							"reason":assessText,
 						}]
+					},{
+						headers:{
+							"Content-Type":"application/x-www-form-urlencoded"
+						}
 					}).then((response)=>{
-							//console.log(response);
-							alert('上传成功');
+						console.log(response);
+							if(response.data.status == "success")
+								alert('操作成功');
 						},(response)=>{
-							alert('上传失败');
+							alert('操作失败');
 						})
 					this.isBestPlan = !this.isBestPlan;
 				}else{
@@ -771,9 +781,43 @@ module.exports = {
 			var item = this.getItem(index);
 			this.planHided.push(item);
 			item.planIsHide = false;
+		},
+
+		//新自定义 保存
+		customSave(index){
+			var url = API_ROOT + 'saveroute&caseid=' + this.caseid;
+			var that = this;
+			if(postData[index]){
+					this.$http.post(url,postData[index],{
+						headers:{
+							"Content-Type":"application/x-www-form-urlencoded"
+						}
+					}).then((response)=>{
+						console.log(response);
+							if(response.data.status == "success"){
+								alert('保存成功');
+								this.getItem(index).customBtn = false;
+							}
+							else{
+								alert('保存失败');
+							}
+						},(response)=>{
+							alert('请求失败');
+						})
+				}
+		},
+		//新自定义 修改名称
+		changeName(index,text){
+			var name = text.replace(/<br>|<br\/>/g,"") || '默认名称';
+			this.getItem(index).name = name;
+			postData[index].routes[0].name = name;
 		}
+	},
+	computed:{
+
 	}
 }
+module.exports = vm;
 </script>
 <style>
 	.leftMainBox{
@@ -786,15 +830,21 @@ module.exports = {
 		background: #ccc;
 	}
 	.mapMainBox{
-		margin-left: 450px;
+		margin-left: 460px;
 	}
 	.showHidePlan{
 		float: right;
 		color:blue;
 		cursor: pointer;
 	}
+	.mapMainBox{
+		height: 100%;
+	}
 	#map_canvas{
-		width:1000px;
-		height: 600px;
+		width:100%;
+		height: 100%;
+	}
+	[v-cloak] {
+  		display: none;
 	}
 </style>

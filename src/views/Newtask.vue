@@ -36,14 +36,21 @@ import API_ROOT from '../store/resources.js';
 		},
 		methods:{
 			submitMethod(){
-				var formData = new FormData(this.$el.querySelector('#newTaskFile'));
+
+				var formData = new FormData();
+				formData.append('file',this.$el.querySelector('#newTaskFile').files[0]);
+				console.log(this.$el.querySelector('#newTaskFile').files[0]);
 				var urlArr = [API_ROOT+this.picked];
 				urlArr.push('taskname=' + this.newTaskName);
 				if(sessionStorage.user){
 					urlArr.push('user=' + sessionStorage.user);
 					var url = urlArr.join('&');
-					this.$http.post(url,formData).then((response)=>{
-						//console.log(response);
+					this.$http.post(url,formData,{
+						headers:{
+							"Content-Type":"multipart/form-data"
+						}
+					}).then((response)=>{
+						console.log(response);
 						alert('上传成功');
 					},(response)=>{
 						alert('上传失败');

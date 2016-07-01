@@ -21,15 +21,21 @@ export default {
 </script>
 
 <style>
+html,body{
+  margin:0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
 #app {
   font-family: Source Sans Pro, Helvetica, sans-serif;
   border:1xp solid blue;
+  height:100%;
 }
 #main{
 	margin-left:210px;
 	padding:20px 0 0 20px;
-	height: 600px;
-	border:1px solid red;
+  height: 85%;
 }
 
 </style>

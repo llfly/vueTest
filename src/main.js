@@ -14,7 +14,8 @@ import Login from './views/Login';
 Vue.use(Router);
 Vue.use(Resource);
 Vue.config.debug = true;
-Vue.http.options.emulateJSON = true;
+//Vue.http.options.emulateJSON = true;
+//Vue.http.options.xhr = {withCredentials: true};
 
 var router = new Router({
 	hashbang:true
@@ -49,7 +50,7 @@ router.map({
 		name:'matchList',
 		component:MatchList
 	},
-	'mainmap/:type/:id':{
+	'mainmap/:type/:taskid/:id':{
 		name:'mainmap',
 		component:Mainmap
 	}

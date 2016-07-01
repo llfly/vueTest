@@ -3,8 +3,8 @@
 		<select v-model="timeTypeSele">
 			<option v-for="item in timeTypeList" :value="item.value">{{item.text}}</option>
 		</select>
-		<input type="text" @click="showCalendar" v-model="value" placeholder="请输入日期">
-    	<calendar :show.sync="show" :value.sync="value" :x="x" :y="y" :begin="begin" :end="end" :range="range"></calendar>
+        <date-picker :time.sync="startTime" :option="startOption"></date-picker>-
+        <date-picker :time.sync="endTime" :option="endOption"></date-picker>
     	<span>状态</span>
     	<select v-model="stateSele">
     		<option v-for="item in stateList" :value="item.text">{{item.text}}</option>
@@ -49,7 +49,7 @@
 					<td>{{item.stateTime}}</td>
 					<td>{{item.own}}</td>
 					<td>
-						<span v-link="{name:'mainmap',params:{id:item.caseid,type:'getevaroute'}}">查看</span>
+						<span v-link="{name:'mainmap',params:{id:item.caseid,type:'getevaroute',taskid:this.$route.params.id}}">查看</span>
 						&nbsp;<span @click="delItem(item.caseid)">删除</span>
 					</td>
 				</tr>
@@ -64,25 +64,37 @@
     <confirm v-show="delShow" :cur-item='checkedDel'></confirm>
 </template>
 <script>
-import calendar from '../components/calendar.vue'
 import confirm from '../components/DeleteConfirm';
 import Turnpage from '../components/TurnPage.vue';
 import API_ROOT from '../store/resources.js';
-
+import datePicker from '../components/vue-datepicker.vue'
 
 module.exports = {
     data() {
         return {
-            show:false,
-            type:"date", //date datetime
-            value:"",
-            // begin:"2015-12-20",
-            // end:"2015-12-25",
-            x:0,
-            y:0,
-            range:true,//是否多选
-
-
+            //时间相关
+            startTime:'',
+            startOption:{
+                type: 'min',
+                month: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                format: 'YYYY-MM-DD HH:mm',
+                placeholder: '开始时间',
+                buttons: {
+                    ok: '确定',
+                    cancel: '取消'
+                }
+            },
+            endTime:'',
+            endOption:{
+                type: 'min',
+                month: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                format: 'YYYY-MM-DD HH:mm',
+                placeholder: '截止时间',
+                buttons: {
+                    ok: '确定',
+                    cancel: '取消'
+                }
+            },
             //评测时间
             timeTypeSele:'etime',
             timeTypeList:[{
@@ -150,9 +162,13 @@ module.exports = {
             this.items = [];
             var urlArr = [API_ROOT+'geteva'];
             urlArr.push('taskid='+this.$route.params.id);
-            // if(this.value){//etime,lktime  timeTypeSele
-            //     urlArr.push(this.timeTypeSele +'='+ this.value);
-            // }
+            if(this.startTime){
+                var timeStr = this.timeTypeSele +'='+ this.startTime + ':00';
+                if(this.endTime){
+                    timeStr +=',' + this.endTime + ':00';
+                }
+                urlArr.push(timeStr);
+            }
             if(this.stateSele){
                 urlArr.push('stat='+ this.stateSele);
             }
@@ -188,7 +204,7 @@ module.exports = {
                     conditionTime:data[i].lktime,
                     city:data[i].city,
                     eval:data[i].eva!='null'?data[i].eva:'',
-                    state:data[i].eva?'已评价':'未评价',
+                    state:data[i].eva!='null'?'已评价':'未评价',
                     stateTime:data[i].etime,
                     own:data[i].own
                 })
@@ -219,9 +235,9 @@ module.exports = {
         }
     },
     components:{
-        calendar,
         confirm,
-        Turnpage
+        Turnpage,
+        datePicker
     },
     events:{
         del(bool,item){
