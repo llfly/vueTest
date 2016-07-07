@@ -36,7 +36,11 @@ import API_ROOT from '../store/resources.js';
 							var type = self.$route.params.type;
 							var type2 = self.$route.params.type2;
 							var id = self.$route.params.id;
-							if(type!=':type'&&type2!='type2'&&id!=':id'){
+							var taskid = self.$route.params.taskid;
+							console.log(type,type2,id,taskid);
+							if(type!=':type'&&type2!='type2'&&id!=':id'&&taskid!=':taskid'){
+								self.$route.router.go({name:type,params:{type:type2,id:id,taskid:taskid}});
+							}else if(type!=':type'&&type2!='type2'&&id!=':id'){
 								self.$route.router.go({name:type,params:{type:type2,id:id}});
 							}else if(type!=':type'&&id!=':id'){
 								self.$route.router.go({name:type,params:{id:id}});

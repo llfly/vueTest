@@ -17,7 +17,7 @@
 		<table class="taskSearchShow">
 			<thead>
 				<tr>
-					<td>批量操作</td>
+					<td><input type="checkbox" v-model="allChecked"/>全选</td>
 					<td>序号</td>
 					<td>任务类型</td>
 					<td>任务名称</td>
@@ -32,7 +32,7 @@
 			</thead>
 			<tbody>
 				<tr v-for='item in items'>
-					<td><input type="checkbox" v-model="checkedDel" value="{{item.taskid}}"></td>
+					<td><input type="checkbox" v-model="item.checked"/></td>
 					<td>{{item.index}}</td>
 					<td>{{item.type}}</td>
 					<td>{{item.name}}</td>
@@ -45,7 +45,7 @@
 					<td>
 						<span v-if="item.type == '匹配校验'" v-link="{name:'matchList',params:{id:item.taskid}}">查看</span>
 						<span v-else v-link="{name:'artificial',params:{id:item.taskid}}">查看</span>
-						&nbsp;<span @click="delItem(item.taskid)">删除</span>
+						&nbsp;<span @click="delItem(item)">删除</span>
 					</td>
 				</tr>
 			</tbody>
@@ -124,9 +124,10 @@ module.exports = {
             all:1,
         }
     },
-    ready(){
-        this.getData();
-
+    route:{
+        data(){
+            this.getData();
+        }
     },
     methods:{
         showCalendar(e){
@@ -188,14 +189,23 @@ module.exports = {
                     restnum:data[i].restnum,
                     ctime:data[i].ctime,
                     etime:data[i].etime,
-                    own:data[i].own
+                    own:data[i].own,
+                    checked:false,
                 })
             }
         },
         //删除相关
         delItem(item){
-            if(item && this.checkedDel.indexOf(item.toString())==-1)
+            var that = this;
+            if(item && this.checkedDel.indexOf(item.toString())==-1){
                 this.checkedDel.push(item);
+            }else{
+                this.items.forEach(function(item){
+                    if(item.checked){
+                        that.checkedDel.push(item);
+                    }
+                })
+            }
             if(this.checkedDel.length)
                 this.delShow = true;
         }
@@ -211,11 +221,13 @@ module.exports = {
             var that = this;
             if(bool){
                 if(sessionStorage.user){
+                    var taskids = [];
                     for(var i=0,len = this.checkedDel.length;i<len;i++){
-                        this.items.$remove(this.items.filter(function(item){return item.taskid == that.checkedDel[i];})[0]);
+                        this.items.$remove(this.checkedDel[i]);
+                        taskids.push(this.checkedDel[i].taskid);
                     };
                     //与后台交互，清空要删除的数组
-                    var url = API_ROOT + 'deltask' + '&user='+ sessionStorage.user + '&taskid='+this.checkedDel.join(',');
+                    var url = API_ROOT + 'deltask' + '&user='+ sessionStorage.user + '&taskid='+taskids.join(',');
                     console.log(url);
                     this.$http.get(url,function(data){
                         console.log(data);
@@ -234,6 +246,30 @@ module.exports = {
         pageClick(num){
             this.page = num;
             this.getData();
+        }
+    },
+    computed:{
+        allChecked: {
+            get: function(){
+                return this.checkedCount == this.items.length;
+            },
+            set: function(value){
+                var that = this;
+                this.items.forEach(function(item){
+                    item.checked = value;
+                    value ? that.checkedDel.push(item) : that.checkedDel =[];
+                })
+                return value;
+            }
+        },
+        checkedCount: {
+            get: function(){
+                var i = 0;
+                this.items.forEach(function(item){
+                    if(item.checked == true) i++;
+                })
+                return i;
+            }
         }
     }
 }

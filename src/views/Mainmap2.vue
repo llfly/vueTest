@@ -21,35 +21,32 @@ import Bestplan from '../components/Bestplan.vue';
 import API_ROOT from '../store/resources.js';
 import Vue from 'vue';
 // import Sgmap from './Sgmap'
+
 //地图相关
 var DATA = [];//左侧列表信息维护
-
 //原始数据
-var links = [];//links数组
-var points = [];//points数组
-var map = null;//地图对象
-//var bounds = null;//bounds 用于fitbounds
-var CaseID,CaseTYPE;//case id类型，
+var links = [];
+var points = [];
+var map = null;
+var bounds = null;
+var drawLinePoints = [];//结合links和points处理之后的点对象
+var lines = [];//画出的线
+var startPoint,endPoint;
+var CaseID,CaseTYPE;
+var dragArr = [];
+var intObj = null;
 var postData = [];//要向服务器提交的数据
-var startPoint,endPoint;//起终点坐标
-//--------------------------------------------------------------------------------//
 
-var _curX, _curY;
-var _keyWayPoints,_dragWayPoint;
-var _lastDragTime = 0;
-var routes = null;
-var routesArr = [];//画出的route
-//初始化
-function initialize(){
-	//加载样式
+function init(){
+
 	sogou.maps.StyleLib.preLoadJson(getStyleJson());
 	sogou.maps.StyleLib.preLoadJson([{
 		"v:stroke" : {
 			"xmlns:v" : "v",
-			color : "#0000ff",
-			weight : "3",
+			color : "#000000",
+			weight : "5",
 			endcap : "Round",
-			opacity : "0.2",
+			opacity : "0.7",
 			startArrow : "None",
 			endArrow : "None",
 			dashstyle : "Solid",
@@ -57,381 +54,13 @@ function initialize(){
 			filltype : "solid"
 		},
 		id : "L0"
-		}
+	}
 	]);
+
 	//实例化地图
 	var myOptions = {
 		'zoom': 14,
-		'center': new sogou.maps.Point(12958035.802,4828316.786),
-		'mapTypeId': sogou.maps.MapTypeId.ROADMAP
-	}
-	map = new sogou.maps.Map(document.getElementById("map_canvas"), myOptions);
-
-	//调用setStart，设置起终点 0起点，1终点
-	_keyWayPoints = [null, null];
-	_curX = startPoint.x;
-	_curY = startPoint.y;
-	setStart(0);
-
-	_curX = endPoint.x;
-	_curY = endPoint.y;
-	setStart(1);
-}
-//设置起终点
-function setStart(i) {
-	if (_dragWayPoint)
-		_dragWayPoint.marker.dragging = false;
-	var point = new sogou.maps.Point(_curX, _curY);
-
-	if (_keyWayPoints[i]) {
-		_keyWayPoints[i].marker.position.x = _curX;
-		_keyWayPoints[i].marker.position.y = _curY;
-	} else
-		_keyWayPoints[i] = new WayPoint(point, i);//封装成waypoint对象
-	_keyWayPoints[i].marker.relocation = true;
-	if (_keyWayPoints[0] && _keyWayPoints[1]) {
-		routing(_keyWayPoints, -1, false, true);
-	}
-}
-
-//type:0--start,1--target,2--drag,3--temp drag
-function WayPoint(point, type, route) {
-	var t = this;
-	t.prevRoute = route ? route : null;
-	t.nextRoute = route ? route : null;
-	t.marker = drawWayPointMarker(t, point, type);
-}
-function drawWayPointMarker(wayPoint, point, type) {
-	var styleId;
-	switch (type) {
-	case 0:
-		styleId = "S1875"; //"S1875";
-		break;
-	case 1:
-		styleId = "S1876"; //"S1876";
-		break;
-	case 2:
-		styleId = "S1878";
-		break;
-	case 3:
-		styleId = "S1872";
-		break;
-	}
-
-	var draggable = true;
-	if(type == 0 || type == 1){
-		draggable = false;
-	}
-	var marker = new sogou.maps.Marker({
-			map : map,
-			position : point,
-			draggable : draggable,
-			styleId : styleId,
-			id : type == 3 ? "dragPoint" : ""
-		});
-
-	function routingByMarker(withMarker, dragging) {
-		var wayPoints = [];
-
-		if (wayPoint.prevRoute)
-			wayPoints.push(wayPoint.prevRoute.fromWayPoint);
-
-		var dpi = -1;
-		if (withMarker) {
-			dpi = wayPoints.length;
-			wayPoints.push(wayPoint);
-		}
-
-		if (wayPoint.nextRoute)
-			wayPoints.push(wayPoint.nextRoute.toWayPoint);
-
-		if (wayPoints.length > 1)
-			routing(wayPoints, dpi, dragging);
-	};
-
-	if (type == 3) {
-		sogou.maps.event.addListener(marker, "click", function (e) {
-			routingByMarker(true, false);
-		});
-	}
-	//
-	sogou.maps.event.addListener(marker, "dragstart", function (e) {
-		marker.dragging = true;
-	});
-	//*
-	sogou.maps.event.addListener(marker, "drag", function (e) {
-		marker.position.x = e.point.x;
-		marker.position.y = e.point.y;
-		if (type == 3)
-			marker.setVisible(true); //防止因触发mouseout事情Marker不可见
-		//延迟执行
-		var curTime = now();
-		if (!_lastDragTime)
-			_lastDragTime = curTime;
-		if (curTime - _lastDragTime < 400)
-			return;
-		_lastDragTime = curTime;
-
-		routingByMarker(true, true);
-	});
-	//*/
-	sogou.maps.event.addListener(marker, "dragend", function (e) {
-		marker.position.x = e.point.x;
-		marker.position.y = e.point.y;
-		marker.dragging = false;
-		marker.relocation = true;
-		_lastDragTime = 0;
-		routingByMarker(true, false);
-	});
-
-	if (type == 3) {
-		sogou.maps.event.addListener(marker, "mouseout", function (e) {
-			marker.setVisible(false);
-		});
-	}
-
-	if (type == 2) {
-		sogou.maps.event.addListener(marker, "rightclick", function (e) {
-			routingByMarker(false, false);
-
-			//阻止map右键菜单
-			e.stopPropagation();
-			//阻止浏览器右键菜单
-			e.preventDefault();
-		});
-	}
-
-	return marker;
-}
-function routing(wayPoints, dpi, dragging,noData,index) {
-	var wp = "";
-	var bounds = new sogou.maps.Bounds();
-	for (var i = 0; i < wayPoints.length; ++i) {
-		if (i > 0)
-			wp += ";";
-		var point = wayPoints[i].marker.position;
-		wp += point;
-		bounds.extend(point);
-	}
-	map.fitBounds(bounds);
-	var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wp;
-	if(noData){
-		//for(var i=0;i<routes.length;i++){
-			//routesArr.push();
-		//}
-		drawRoute(routes[index || 0],wayPoints,dpi,dragging,noData)
-		//console.log(routesArr);
-	}else{
-		getJSONP(url,function(data){
-			if(data.status == 'success'){
-				if(data.routes[0]){
-					drawRoute(data.routes,wayPoints,dpi,dragging);
-				}
-			}else{
-				console.log('请求失败');
-			}
-		});
-	}
-}
-function drawRoute(jsonRes, wayPoints, dpi, dragging,noData) {
-	//debugger;
-	var routePath = [];
-	var jsonRoute = jsonRes;
-	//if(dragging)
-	//	jsonRoute = jsonRes.Route.Feature;
-	var curWayPoint = wayPoints[0];//起点
-	var lastWayPoint = wayPoints[wayPoints.length - 1];//终点
-
-	while (curWayPoint.nextRoute) {//作用？
-		curWayPoint.nextRoute.polyline.setMap(null);//清空所有的polyline
-		curWayPoint = curWayPoint.nextRoute.toWayPoint;
-
-		if (curWayPoint == lastWayPoint)
-			break;
-		if (dpi >= 0 && curWayPoint == wayPoints[dpi])
-			continue;
-		curWayPoint.marker.setMap(null);//清除marker
-	}
-	var allLinks = jsonRoute.links;
-	if (dpi > 0 && dpi < wayPoints.length - 1 && !dragging && wayPoints[1] == _dragWayPoint) {
-		wayPoints[1] = new WayPoint(wayPoints[1].marker.getPosition(), 2);
-	}
-
-	var allPoints = jsonRoute["points"];
-	//var allLevels = fn["levels"][0];
-
-	var jsonWayPoints = jsonRoute.waypoints,i;
-	for (i = 0; i < wayPoints.length; ++i) {
-		if (i != dpi || !dragging) {
-			//拖拽等操作会使其他节点位置发生偏移，因此，对于没给节点我们只进行一次重定位
-			if (wayPoints[i].marker.relocation == true) {
-				wayPoints[i].marker.relocation = false;
-				var point;
-				if(noData){
-					point = i == 0 ? new sogou.maps.Point(startPoint.x,startPoint.y) : new sogou.maps.Point(endPoint.x,endPoint.y);
-				}else{
-					point = allPoints[jsonWayPoints[i].pidx];
-				}
-				wayPoints[i].marker.setPosition(point);
-				wayPoints[i].marker.position.x = point.x;
-				wayPoints[i].marker.position.y = point.y;
-			}
-			if(jsonWayPoints)
-				wayPoints[i].pct = jsonWayPoints[i].pct;
-		}
-
-		if (i == wayPoints.length - 1)
-			break;
-		var links = [],
-		path = [],
-		levels = [],
-		len,j;
-		if(noData){//第一次没有wayPoint
-			for(j=0;j<allPoints.length;j++){
-				path.push(allPoints[j]);
-			}
-		}else{
-			if(i==0)
-				j = jsonWayPoints[i].idx;
-			else
-				j = jsonWayPoints[i].idx + 1;
-			for(;j<=jsonWayPoints[i+1].idx;++j){
-				links.push(allLinks[j]);
-			}
-
-			for (j = jsonWayPoints[i].pidx; j <= jsonWayPoints[i + 1].pidx; ++j) {
-				path.push(allPoints[j]);
-				//levels.push(allLevels[j]);
-			}
-		}
-		var route = new Route(path, levels, links);
-		wayPoints[i].nextRoute = route;
-		wayPoints[i + 1].prevRoute = route;
-		route.fromWayPoint = wayPoints[i];
-		route.toWayPoint = wayPoints[i + 1];
-		routePath.push(route);
-	}
-
-	return routePath;
-}
-function Route(path, levels, links) {
-	var t = this;
-	t.fromWayPoint = null;
-	t.toWayPoint = null;
-	t.links = links;
-	t.polyline = drawRoutePolyline(t, path, levels);
-}
-function drawRoutePolyline(route, path, levels) {
-	var fn = new sogou.maps.FeatureNode();
-	fn.points = path;
-	//fn.levels = [0];
-	fn.type = "L";
-
-	var polyline = new sogou.maps.Polyline({
-			//path:path,
-			'feature' : fn,
-			'map' : map,
-			'styleId' : "L0"
-		});
-	sogou.maps.event.addListener(polyline, "mousemove", function (e) {
-		if (_dragWayPoint) {
-			if (_dragWayPoint.marker.dragging == true)
-				return;
-			_dragWayPoint.marker.setVisible(true);
-			_dragWayPoint.marker.setPosition(e.point);
-			//_dragWayPoint.marker.position.x = e.point.x;
-			//_dragWayPoint.marker.position.y = e.point.y;
-			_dragWayPoint.prevRoute = route;
-			_dragWayPoint.nextRoute = route;
-		} else {
-			_dragWayPoint = new WayPoint(e.point, 3, route);
-			_dragWayPoint.marker.dragging = false;
-		}
-	});
-	return polyline;
-}
-
-
-
-
-//--------------------------------------------------------------------------------//
-//tool methods
-//选择对应的route 进行高亮
-function selectPath(index){
-	if (_keyWayPoints[0] && _keyWayPoints[1]) {
-		routing(_keyWayPoints, -1, false, true,index);
-	}
-	// for(var i=0,len = routesArr.length;i<len;i++){
-	// 	if(routesArr[i]&&routesArr[i].polyline){
-	// 		routesArr[i][0].polyline.setStyle({"StyleStroke":{opacity:"0.2",weight:'3px'}});
-	// 	}
-	// }
-	// debugger;
-	// if(index || index == 0){
-	// 	routesArr[index][0].polyline.setStyle({"StyleStroke":{opacity:"1",weight:'5px'}});
-	// }
-}
-function getJSONP(url, callback) {
-    if (!url) {
-        return;
-    }
-    var a = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']; //定义一个数组以便产生随机函数名
-    var r1 = Math.floor(Math.random() * 10);
-    var r2 = Math.floor(Math.random() * 10);
-    var r3 = Math.floor(Math.random() * 10);
-    var name = 'getJSONP' + a[r1] + a[r2] + a[r3];
-    url += '&cb=' + name;
-    var script = document.createElement('script');
-    //定义被脚本执行的回调函数
-    window[name] = function (e) {
-        try {
-        	callback && callback(e);
-        } catch (e) {
-        	console.log(e);
-        }
-        finally {//最后删除该函数与script元素
-            delete window[name];
-            script.parentNode.removeChild(script);
-        }
-
-    }
-    script.src = url;
-    document.getElementsByTagName('head')[0].appendChild(script);
-}
-
-//-------------------------------------------------------------------------------------//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//原始数据
-
-var drawLinePoints = [];//结合links和points处理之后的点对象
-
-
-var dragArr = [];
-var intObj = null;
-
-function init(){
-	//实例化地图
-	var myOptions = {
-		'zoom': 14,
-		'center': new sogou.maps.Point(12958035.802,4828316.786),
+		'center': new sogou.maps.Point(12958035.802,4828316.786);,
 		'mapTypeId': sogou.maps.MapTypeId.ROADMAP
 	}
 	map = new sogou.maps.Map(document.getElementById("map_canvas"), myOptions);
@@ -518,7 +147,6 @@ function fitBounds(){
 		}
 	}
 }
-/*
 function selectPath(index){
 	for(var i=0,len= lines.length;i<len;i++){
 		if(lines[i]){
@@ -533,7 +161,7 @@ function selectPath(index){
 		}
 	}
 }
-*/
+
 //拖拽点相关
 var wp,evt=sogou.maps.SEvent.trigger;
 function point2lineDistance(x0,y0,x1,y1,x2,y2){
@@ -927,7 +555,22 @@ function getStyleJson() {
 
 
 
-//----------------------------------------------------------------------------------------------------//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var vm = {
 	data(){
@@ -996,22 +639,20 @@ var vm = {
 			map&&map.clearAll();
 			links = [];
 			points = [];
-			//bounds = null;
+			bounds = null;
 			drawLinePoints = [];
-			routesArr = [];
-			//lines = [];
+			lines = [];
 			//this.leftInfo = [];
 			DATA = [];
 			//postData是否需要更新?
 			postData = [];
 			this.leftInfo = DATA;
 			this.getData();
-
-			// var that = this;
-			// setTimeout(function(){
-			// 	if(that.leftInfo.length)
-			// 	that.turnPlan(0);
-			// },2000);
+			var that = this;
+			setTimeout(function(){
+				if(that.leftInfo.length)
+				that.turnPlan(0);
+			},2000);
 		},
 		getData(){
 			CaseID = this.$route.params.id;
@@ -1040,7 +681,7 @@ var vm = {
 			this.end = data.end;
 			this.eva = data.eva;
 			this.lktime = data.lktime;
-			routes = data.routes;
+			this.rous = data.routes;
 			startPoint = data.routes[0].points[0];
 			endPoint = data.routes[0].points[data.routes[0].points.length-1];
 
@@ -1090,12 +731,11 @@ var vm = {
 				//this.leftInfo.push(obj);
 				DATA.push(obj);
 			}
-			//初始化地图
-			//init();
-			initialize();
+
+			init();
 		},
 		turnPlan(index){
-
+			//console.log(this);// = '#ff0000';
 			for(var i=0,len=this.leftInfo.length;i<len;i++){
 				this.leftInfo[i].bgcolor = false;
 			}
@@ -1104,6 +744,7 @@ var vm = {
 			})[0].bgcolor = true;
 
 			selectPath(index);
+			//this.bgcolor = true;
 		},
 		//显示全部逻辑
 		showAllPlan(){
@@ -1279,12 +920,12 @@ var vm = {
 					});
 					//删除地图区线路
 					//lines[index]
-					// if(lines[index]){
-					// 	for(var i=0,len=lines[index].length;i<len;i++){
-					// 		lines[index][i].setMap(null);
-					// 	}
-					// 	lines.splice(index,1);
-					// }
+					if(lines[index]){
+						for(var i=0,len=lines[index].length;i<len;i++){
+							lines[index][i].setMap(null);
+						}
+						lines.splice(index,1);
+					}
 					}else{
 						alert('删除失败！');
 					}

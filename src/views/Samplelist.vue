@@ -27,7 +27,7 @@
 		<table class="taskSearchShow">
 			<thead>
 				<tr>
-					<td>批量操作</td>
+					<td><input type="checkbox" v-model="allChecked"/>全选</td>
 					<td>序号</td>
 					<td>编号</td>
 					<td>类型</td>
@@ -46,7 +46,7 @@
 			</thead>
 			<tbody>
 				<tr v-for='item in items'>
-					<td><input type="checkbox" v-model="checkedDel" value="{{item.caseid}}"></td>
+					<td><input type="checkbox" v-model="item.checked"></td>
 					<td>{{item.index}}</td>
 					<td>{{item.caseid}}</td>
 					<td>{{item.type}}</td>
@@ -62,7 +62,7 @@
 					<td>{{item.own}}</td>
 					<td>
 						<span v-link="{name:'mainmap',params:{id:item.caseid,type:'dispcase'}}">查看</span>
-						&nbsp;<span @click="delItem(item.caseid)">删除</span>
+						&nbsp;<span @click="delItem(item)">删除</span>
 					</td>
 				</tr>
 			</tbody>
@@ -200,8 +200,10 @@ import API_ROOT from '../store/resources.js';
             all:1,
         }
     },
-    ready(){
-    	this.getData();
+    route:{
+        data(){
+            this.getData();
+        }
     },
     methods:{
         showCalendar(e){
@@ -266,20 +268,29 @@ import API_ROOT from '../store/resources.js';
                     type:data[i].type,
                     start:data[i].start,
                     end:data[i].end,
-                    cost:data[i].cost,
-                    dis:data[i].dis + '公里',
+                    cost:data[i].cost +'分钟',
+                    dis:data[i].dis/1000 + '公里',
                     lktime:data[i].lktime,
                     eva:data[i].eva!='null'?data[i].eva:'',
                     label:data[i].label!='null'?data[i].label:'',
                     city:data[i].city,
                     etime:data[i].etime,
-                    own:data[i].own
+                    own:data[i].own,
+                    checked:false,
                 })
             }
         },
         delItem(item){
-            if(item && this.checkedDel.indexOf(item.toString())==-1)
+            var that = this;
+            if(item && this.checkedDel.indexOf(item.toString())==-1){
                 this.checkedDel.push(item);
+            }else{
+                this.items.forEach(function(item){
+                    if(item.checked){
+                        that.checkedDel.push(item);
+                    }
+                })
+            }
             if(this.checkedDel.length)
                 this.delShow = true;
         },
@@ -314,11 +325,13 @@ import API_ROOT from '../store/resources.js';
             var that = this;
             if(bool){
                 if(sessionStorage.user){
+                    var caseids = [];
                     for(var i=0,len = this.checkedDel.length;i<len;i++){
-                        this.items.$remove(this.items.filter(function(item){return item.caseid == that.checkedDel[i];})[0]);
+                        this.items.$remove(this.checkedDel[i]);
+                        caseids.push(this.checkedDel[i].caseid);
                     };
                     //与后台交互，清空要删除的数组
-                    var url = API_ROOT + 'delcase' + '&user='+ sessionStorage.user + '&caseid='+this.checkedDel.join(',');
+                    var url = API_ROOT + 'delcase' + '&user='+ sessionStorage.user + '&caseid='+caseids.join(',');
                     this.$http.get(url,function(data){
                         if(data.status == 'fail'){
                             alert(data.detail);
@@ -348,7 +361,29 @@ import API_ROOT from '../store/resources.js';
                 this.labelSele = tags[0].text;
                 return tags;
 			}
-    	}
+    	},
+        allChecked: {
+            get: function(){
+                return this.checkedCount == this.items.length;
+            },
+            set: function(value){
+                var that = this;
+                this.items.forEach(function(item){
+                    item.checked = value;
+                    value ? that.checkedDel.push(item) : that.checkedDel =[];
+                })
+                return value;
+            }
+        },
+        checkedCount: {
+            get: function(){
+                var i = 0;
+                this.items.forEach(function(item){
+                    if(item.checked == true) i++;
+                })
+                return i;
+            }
+        }
   	}
 }
 </script>

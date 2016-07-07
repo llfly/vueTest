@@ -26,7 +26,7 @@ router.map({
 	'/':{
 		component:Tasklist
 	},
-	'login/:type/:type2/:id':{
+	'login/:type/:type2/:taskid/:id':{
 		name:'login',
 		component:Login
 	},

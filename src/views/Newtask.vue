@@ -34,12 +34,19 @@ import API_ROOT from '../store/resources.js';
 				picked:'createeva',
 			}
 		},
+		route:{
+        	data(){
+        		console.log(sessionStorage.user);
+            	if(!sessionStorage.user){
+            		this.$route.router.go({name:'login',params:{type:'newTask'}});
+            	}
+        	}
+		},
 		methods:{
 			submitMethod(){
-
+				var that = this;
 				var formData = new FormData();
 				formData.append('file',this.$el.querySelector('#newTaskFile').files[0]);
-				console.log(this.$el.querySelector('#newTaskFile').files[0]);
 				var urlArr = [API_ROOT+this.picked];
 				urlArr.push('taskname=' + this.newTaskName);
 				if(sessionStorage.user){
@@ -50,18 +57,15 @@ import API_ROOT from '../store/resources.js';
 							"Content-Type":"multipart/form-data"
 						}
 					}).then((response)=>{
-						console.log(response);
 						alert('上传成功');
+						//无法清空file value
+						window.location.reload();
 					},(response)=>{
 						alert('上传失败');
 					});
 				}else{
 					 this.$route.router.go({name:'login',params:{type:'newTask'}});
 				}
-
-
-
-				//this.$http.post(url,)
 			}
 		}
 	}

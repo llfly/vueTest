@@ -75,7 +75,7 @@
 		border:1px solid red;
 		background-color: #fff;
 		width:350px;
-		height: 250px;
+		height: 280px;
 		position: absolute;
 		top:0;
 		bottom:0;

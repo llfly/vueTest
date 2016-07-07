@@ -226,8 +226,10 @@ module.exports = {
             all:1,
         }
     },
-    ready(){
-        this.getData();
+    route:{
+        data(){
+            this.getData();
+        }
     },
     methods:{
         showCalendar(e){
@@ -340,12 +342,14 @@ module.exports = {
             });
         },
         dealTab(data){
-            var arr = ['VIPcase','重点case','一般case','合计'];
-            for(var i=0;i<3;i++){
-                data['stat'+i].unshift(arr[i]);
-                this.stats.push(data['stat'+i]);
+            if(!this.statsShow){
+                var arr = ['VIPcase','重点case','一般case','合计'];
+                for(var i=0;i<3;i++){
+                    data['stat'+i].unshift(arr[i]);
+                    this.stats.push(data['stat'+i]);
+                }
+                this.statsShow = true;
             }
-            this.statsShow = true;
         }
     },
     components:{

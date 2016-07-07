@@ -138,8 +138,10 @@ module.exports = {
             all:1,
         }
     },
-    ready(){
-        this.getData();
+    route:{
+        data(){
+            this.getData();
+        }
     },
     methods:{
         showCalendar(e){
@@ -199,8 +201,8 @@ module.exports = {
                     caseid:data[i].caseid,
                     start:data[i].start,
                     end:data[i].end,
-                    time:data[i].cost,
-                    dist:data[i].dis +'公里',
+                    time:data[i].cost +'分钟',
+                    dist:data[i].dis/1000 +'公里',
                     conditionTime:data[i].lktime,
                     city:data[i].city,
                     eval:data[i].eva!='null'?data[i].eva:'',
