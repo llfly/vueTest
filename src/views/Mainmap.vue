@@ -47,9 +47,9 @@ function initialize(){
 		"v:stroke" : {
 			"xmlns:v" : "v",
 			color : "#0000ff",
-			weight : "3",
+			weight : "5",
 			endcap : "Round",
-			opacity : "0.2",
+			opacity : "0.7",
 			startArrow : "None",
 			endArrow : "None",
 			dashstyle : "Solid",
