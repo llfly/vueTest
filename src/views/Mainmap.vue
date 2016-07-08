@@ -46,10 +46,10 @@ function initialize(){
 	sogou.maps.StyleLib.preLoadJson([{
 		"v:stroke" : {
 			"xmlns:v" : "v",
-			color : "#0000ff",
+			color : "#C87149",
 			weight : "5",
 			endcap : "Round",
-			opacity : "0.7",
+			opacity : "1",
 			startArrow : "None",
 			endArrow : "None",
 			dashstyle : "Solid",
@@ -57,6 +57,22 @@ function initialize(){
 			filltype : "solid"
 		},
 		id : "L0"
+		}
+	]);
+		sogou.maps.StyleLib.preLoadJson([{
+		"v:stroke" : {
+			"xmlns:v" : "v",
+			color : "#C87149",
+			weight : "5",
+			endcap : "Round",
+			opacity : "0",
+			startArrow : "None",
+			endArrow : "None",
+			dashstyle : "Solid",
+			src : "",
+			filltype : "solid"
+		},
+		id : "L1"
 		}
 	]);
 	//实例化地图
@@ -213,6 +229,8 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 		wp += point;
 		bounds.extend(point);
 	}
+	bounds.extend(startPoint);
+	bounds.extend(endPoint);
 	map.fitBounds(bounds);
 	var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wp;
 	if(noData){
@@ -222,10 +240,11 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 		drawRoute(routes[index || 0],wayPoints,dpi,dragging,noData)
 		//console.log(routesArr);
 	}else{
+		console.log(url);
 		getJSONP(url,function(data){
 			if(data.status == 'success'){
 				if(data.routes[0]){
-					drawRoute(data.routes,wayPoints,dpi,dragging);
+					drawRoute(data.routes[0],wayPoints,dpi,dragging);
 				}
 			}else{
 				console.log('请求失败');
@@ -234,7 +253,6 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 	}
 }
 function drawRoute(jsonRes, wayPoints, dpi, dragging,noData) {
-	//debugger;
 	var routePath = [];
 	var jsonRoute = jsonRes;
 	//if(dragging)
@@ -244,6 +262,11 @@ function drawRoute(jsonRes, wayPoints, dpi, dragging,noData) {
 
 	while (curWayPoint.nextRoute) {//作用？
 		curWayPoint.nextRoute.polyline.setMap(null);//清空所有的polyline
+		if(curWayPoint.nextRoute.linkPolyline){
+			for(var i=0,len = curWayPoint.nextRoute.linkPolyline.length;i<len;i++){
+				curWayPoint.nextRoute.linkPolyline[i].setMap(null);
+			}
+		}
 		curWayPoint = curWayPoint.nextRoute.toWayPoint;
 
 		if (curWayPoint == lastWayPoint)
@@ -290,6 +313,7 @@ function drawRoute(jsonRes, wayPoints, dpi, dragging,noData) {
 			for(j=0;j<allPoints.length;j++){
 				path.push(allPoints[j]);
 			}
+			links = allLinks;
 		}else{
 			if(i==0)
 				j = jsonWayPoints[i].idx;
@@ -318,7 +342,8 @@ function Route(path, levels, links) {
 	var t = this;
 	t.fromWayPoint = null;
 	t.toWayPoint = null;
-	t.links = links;
+	//t.links = links;
+	t.linkPolyline = drawLinkPolyline(t,path,links);
 	t.polyline = drawRoutePolyline(t, path, levels);
 }
 function drawRoutePolyline(route, path, levels) {
@@ -327,11 +352,12 @@ function drawRoutePolyline(route, path, levels) {
 	//fn.levels = [0];
 	fn.type = "L";
 
+	var styleId = route.linkPolyline?'L1':'L0';
 	var polyline = new sogou.maps.Polyline({
 			//path:path,
 			'feature' : fn,
 			'map' : map,
-			'styleId' : "L0"
+			'styleId' :styleId
 		});
 	sogou.maps.event.addListener(polyline, "mousemove", function (e) {
 		if (_dragWayPoint) {
@@ -350,8 +376,49 @@ function drawRoutePolyline(route, path, levels) {
 	});
 	return polyline;
 }
-
-
+//路况 线
+function drawLinkPolyline(route, path, links){
+	var zero = links.every(function(item){
+		return item.level == 0;
+	});
+	if(zero){
+		return;
+	}
+	var colorArr = ['#C87149','#7FBD09','#F2850D','#E41515','#630000'];
+	var pathArr = [];
+	var linkArr = [];
+	if(links&&links.length){//links存在
+		for(var i=0 , len=links.length ; i<len; i++){
+			var start = links[i]&&links[i].index;
+			var end = (links[i+1] && links[i+1].index) || path.length;
+			var arr = [];
+			for(var j = start;j<=end;j++){
+				if(path[j]!=undefined)
+	 				arr.push(path[j]);
+			}
+			linkArr.push(arr);
+		}
+		for(var i=0,len = linkArr.length;i<len;i++){
+			try{
+				var p = new sogou.maps.Polyline({
+		            'path':linkArr[i],
+		            "map": map,
+		            //strokeColor: "#FF0000",
+				    opacity: 0.2,
+				    strokeWeight: 5,
+		            strokeColor: colorArr[links[i].level],
+		            dashstyle:"Solid",
+		            //isFixed:true
+        	});
+        		pathArr.push(p);
+        	}catch (ex){
+        		console.log(ex);
+    		}
+		}
+		return pathArr;
+	}
+	return null;
+}
 
 
 //--------------------------------------------------------------------------------//

@@ -57,8 +57,8 @@
 		</table>
 	</div>
     <div class="bottomBtn">
+        <span class="returnBtn" @click="backPage()">返回上一页</span>
         <button type="button" @click="saveData()">提交样本库</button>
-        <span></span>
         <Turnpage :all.sync="all" :cur.sync="page"></Turnpage>
     </div>
     <confirm v-show="delShow" :cur-item='checkedDel'></confirm>
@@ -234,6 +234,9 @@ module.exports = {
                 this.checkedDel.push(item);
             if(this.checkedDel.length)
                 this.delShow = true;
+        },
+        backPage(){
+            history.go(-1);
         }
     },
     components:{
