@@ -32,6 +32,7 @@ var map = null;//地图对象
 var CaseID,CaseTYPE;//case id类型，
 var postData = [];//要向服务器提交的数据
 var startPoint,endPoint;//起终点坐标
+//var intObj = null;//拖拽点相关信息
 //--------------------------------------------------------------------------------//
 
 var _curX, _curY;
@@ -465,29 +466,46 @@ function getJSONP(url, callback) {
     script.src = url;
     document.getElementsByTagName('head')[0].appendChild(script);
 }
-
+function getStyleJson() {
+	var c = [],
+	b = [
+		[2, "", "6,6", "19,87,12,12"], //,"7,7","34,87,14,1"],//
+		[3, "", "12,12", "1,62,24,24"],
+		[4, "", "12,12", "26,62,24,24"],
+		[5, "C3", "12,29", "0,0,24,29"],
+		[6, "C3", "12,29", "25,0,24,29"],
+		[7, "", "12,12", "1,100,24,24"],
+		[8, "", "6,6", "4,87,12,12", "6,6", "19,87,12,12"]
+	];
+	function gImg(a, b, c) {
+		var e = {
+			src : "http://api.go2map.com/maps/images/v2.0/c31.png",
+			width : 51,
+			height : 156,
+			pointcoord : a,
+			clip : b
+		};
+		if (c)
+			e["iconclass"] = c;
+		return e;
+	}
+	for (var i = 0, j, k; i < b.length; i++) {
+		k = b[i];
+		j = {
+			id : "S187" + k[0],
+			img : k.length > 4 ? [gImg(k[2], k[3], k[1]), gImg(k[4], k[5], k[1])] : gImg(k[2], k[3], k[1])
+		};
+		c.push(j);
+	}
+	return c;
+}
 //-------------------------------------------------------------------------------------//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
 //原始数据
 
+/*
 var drawLinePoints = [];//结合links和points处理之后的点对象
 
 
@@ -585,7 +603,7 @@ function fitBounds(){
 		}
 	}
 }
-/*
+
 function selectPath(index){
 	for(var i=0,len= lines.length;i<len;i++){
 		if(lines[i]){
@@ -600,7 +618,7 @@ function selectPath(index){
 		}
 	}
 }
-*/
+
 //拖拽点相关
 var wp,evt=sogou.maps.SEvent.trigger;
 function point2lineDistance(x0,y0,x1,y1,x2,y2){
@@ -871,6 +889,7 @@ wyp.hide=function(a,b){
         a.setVisible(false);
     }
 }
+*/
 /**
 *过滤限定了显示级别的点，只有显示级别低于等于当前缩放级别的点才被记录下来
 *@param a Array[Point]	所有的点坐标 [Point]
@@ -878,6 +897,7 @@ wyp.hide=function(a,b){
 *@param c Number	当前的缩放级别
 *@return Array[Point] 符合当前缩放级别下显示的点
 */
+/*
 function fixed2(str){
 	return parseFloat(str).toFixed(2);
 }
@@ -958,40 +978,8 @@ function _offsetPositionAbsolute(a) {
 	return b
 }
 
-function getStyleJson() {
-	var c = [],
-	b = [
-		[2, "", "6,6", "19,87,12,12"], //,"7,7","34,87,14,1"],//
-		[3, "", "12,12", "1,62,24,24"],
-		[4, "", "12,12", "26,62,24,24"],
-		[5, "C3", "12,29", "0,0,24,29"],
-		[6, "C3", "12,29", "25,0,24,29"],
-		[7, "", "12,12", "1,100,24,24"],
-		[8, "", "6,6", "4,87,12,12", "6,6", "19,87,12,12"]
-	];
-	function gImg(a, b, c) {
-		var e = {
-			src : "http://api.go2map.com/maps/images/v2.0/c31.png",
-			width : 51,
-			height : 156,
-			pointcoord : a,
-			clip : b
-		};
-		if (c)
-			e["iconclass"] = c;
-		return e;
-	}
-	for (var i = 0, j, k; i < b.length; i++) {
-		k = b[i];
-		j = {
-			id : "S187" + k[0],
-			img : k.length > 4 ? [gImg(k[2], k[3], k[1]), gImg(k[4], k[5], k[1])] : gImg(k[2], k[3], k[1])
-		};
-		c.push(j);
-	}
-	return c;
-}
 
+*/
 
 
 //----------------------------------------------------------------------------------------------------//
@@ -1043,16 +1031,7 @@ var vm = {
 		Assess,
 		Bestplan,
 		PlanInfo,
-		//Sgmap
 	},
-	// ready(){
-	// 	this.getData();
-	// 	var that = this;
-	// 	setTimeout(function(){
-	// 		that.turnPlan(0);
-	// 	},2000);
-	// 	//action=getevaroute&caseid=xxx
-	// },
 	route:{
 		data(){
 			this.init();
@@ -1064,7 +1043,7 @@ var vm = {
 			links = [];
 			points = [];
 			//bounds = null;
-			drawLinePoints = [];
+			//drawLinePoints = [];
 			routesArr = [];
 			//lines = [];
 			//this.leftInfo = [];
