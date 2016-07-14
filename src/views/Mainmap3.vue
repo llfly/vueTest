@@ -25,17 +25,23 @@ import Vue from 'vue';
 var DATA = [];//左侧列表信息维护
 
 //原始数据
-var LINKS = [];//links数组
-var POINTS = [];//points数组
-var LINES = [];//带路况的线对象
+var links = [];//links数组
+var points = [];//points数组
 var map = null;//地图对象
 //var bounds = null;//bounds 用于fitbounds
 var CaseID,CaseTYPE;//case id类型，
 var postData = [];//要向服务器提交的数据
 var startPoint,endPoint;//起终点坐标
 //var intObj = null;//拖拽点相关信息
+//--------------------------------------------------------------------------------//
 
-//-----------------------------------画线部分-------------------------------------------//
+var _curX, _curY;
+var _keyWayPoints,_dragWayPoint;
+var _lastDragTime = 0;
+var routes = null;
+var routesArr = [];//画出的route
+var lineHadSave = false;//是否有线未保存
+//初始化
 function initialize(){
 	//加载样式
 	sogou.maps.StyleLib.preLoadJson(getStyleJson());
@@ -88,85 +94,7 @@ function initialize(){
 	_curX = endPoint.x;
 	_curY = endPoint.y;
 	setStart(1);
-	debugger;
-	//根据现有数据画线
-	LINES = new DrawLines(LINKS,POINTS);
 }
-
-
-function DrawLines(links,points){
-	this.links = links;
-	this.points = points;
-	this.drawLinePoints = [];
-	this.lines = [];
-	this.init();
-
-}
-DrawLines.prototype.init = function(){
-	//获取所有的路况点
-	for(var i=0,len = this.links.length;i<len;i++){
-		this.drawLinePoints.push(this.dealPoints(this.links[i],this.points[i]));
-	}
-	if(this.drawLinePoints.length){
-		for(i=0,len=this.drawLinePoints.length;i<len;i++){
-			this.lines.push(this.drawMap(this.links[i],this.drawLinePoints[i]));
-		}
-	}
-}
-//处理每一条数据的link和point
-DrawLines.prototype.dealPoints = function(link,point){
-	var path = [];
-	for(var i=0 , len=link.length ; i<len; i++){
-		var start = link[i]&&link[i].index;
-		var end = (link[i+1] && link[i+1].index) || point.length;
-		var arr = [];
-		for(var j = start;j<=end;j++){
-			if(point[j]!=undefined)
- 				arr.push(point[j]);
-		}
-		path.push(arr);
-	}
-	return path;
-}
-//绘制地图
-DrawLines.prototype.drawMap = function(color,path){
-	var colorArr = ['#C87149','#7FBD09','#F2850D','#E41515','#630000'];
-	var pathArr = [];
-	for(var i=0,len = path.length;i<len;i++){
-		try{
-			var p = new sogou.maps.Polyline({
-	            'path':path[i],
-	            "map": map,
-			    opacity: 0.2,
-			    strokeWeight: 5,
-	            strokeColor: colorArr[color[i].level],
-	            dashstyle:"Solid",
-        	});
-        	pathArr.push(p);
-		}catch (ex){
-        	console.log(ex);
-    	}
-	}
-	return pathArr;
-}
-
-
-
-
-
-
-
-
-//--------------------------------------拖拽部分------------------------------------------//
-
-var _curX, _curY;
-var _keyWayPoints,_dragWayPoint;
-var _lastDragTime = 0;
-var routes = null;
-var routesArr = [];//画出的route
-var lineHadSave = false;//是否有线未保存
-//初始化
-
 //设置起终点
 function setStart(i) {
 	if (_dragWayPoint)
@@ -179,8 +107,6 @@ function setStart(i) {
 	} else
 		_keyWayPoints[i] = new WayPoint(point, i);//封装成waypoint对象
 	_keyWayPoints[i].marker.relocation = true;
-
-	return;
 	if (_keyWayPoints[0] && _keyWayPoints[1]) {
 		routing(_keyWayPoints, -1, false, true);
 	}
@@ -345,6 +271,9 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 	map.fitBounds(bounds);
 	var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wp;
 	if(noData){
+		//for(var i=0;i<routes.length;i++){
+			//routesArr.push();
+		//}
 		//从服务器端获取的第一次数据，起终点
 		drawRoute(routes[index || 0],wayPoints,dpi,dragging,noData)
 	}else{
@@ -681,8 +610,16 @@ function init(){
 	fitBounds();
 	initStartAndEnd(startPoint,'start');
 	initStartAndEnd(endPoint,'end');
-
-
+	//分别处理links和points
+	for(var i=0,len = links.length;i<len;i++){
+		drawLinePoints.push(dealPoints(links[i],points[i]));
+	}
+	//对处理之后的点分别进行划线操作
+	if(drawLinePoints){
+		for(i=0,len=drawLinePoints.length;i<len;i++){
+			lines.push(drawMap(links[i],drawLinePoints[i]));
+		}
+	}
 	map.fitBounds(bounds);
 }
 function initStartAndEnd(pos,type){
@@ -696,8 +633,53 @@ function initStartAndEnd(pos,type){
     });
     return marker;
 }
-
-
+function dealPoints(link,point){
+	// var link = links[0];
+	// var point = points[0];
+	var path = [];
+	for(var i=0 , len=link.length ; i<len; i++){
+		var start = link[i]&&link[i].index;
+		var end = (link[i+1] && link[i+1].index) || point.length;
+		var arr = [];
+		for(var j = start;j<=end;j++){
+			if(point[j]!=undefined)
+ 				arr.push(point[j]);
+		}
+		path.push(arr);
+	}
+	//console.log(path.length);
+	return path;
+	//drawMap();
+}
+function drawMap(color,path){
+	var colorArr = ['#0000ff','#00ff00','#ffff00','#ee4444','#990000'];
+	var pathArr = [];
+	for(var i=0,len = path.length;i<len;i++){
+		try{
+			var p = new sogou.maps.Polyline({
+	            'path':path[i],
+	            "map": map,
+	            //strokeColor: "#FF0000",
+			    opacity: 0.2,
+			    strokeWeight: 5,
+	            //disableLabel: true,
+	            strokeColor: colorArr[color[i].level],
+	            dashstyle:"Solid",
+	            //isFixed:true
+        	});
+        	if(map.dgObject){
+        		map.dgObject.addTarget(p);
+        	}
+        	pathArr.push(p);
+        	//console.log(i,path[i]);
+		}catch (ex){
+        	console.log(ex);
+    	}
+	}
+	return pathArr;
+	//map.fitBounds(bounds);
+	//console.log(pathArr);
+}
 function fitBounds(){
 	bounds = new sogou.maps.Bounds(points[0][0].x,points[0][0].y,points[0][0].x,points[0][0].y);
 	for(var i=0,len= points.length;i<len;i++){
@@ -855,6 +837,233 @@ function getDragData(response){
 	intObj = obj;
 }
 
+//waypoints对象
+function Waypoints()
+{
+	var t=this,m;
+	t.m=m=map;
+    t.targets = [];
+    t.wayNodes;
+	sogou.maps.SEvent.addDomListener(m.div,"mousemove",function(e){t.onMouseMove(e)});
+    //SEvent.addListener(ServiceConfig,"ClearNav",function(e){t.clear();});
+    sogou.maps.SEvent.addListener(m,"clearall",function(e){
+        if(t.tp) delete t.tp;  //释放内存
+    });
+};
+var wyp=Waypoints.prototype=new sogou.maps.G2MObject();
+wyp.listeners = [];
+wyp.addTarget = function(a,b){
+	var t = this;
+	t.listeners.push(sogou.maps.SEvent.addListener(a,"mouseover",function(e){t.onMouseOver(a,e)}));
+}
+wyp.onMouseMove=function(a){
+	var t=this,d=t.tp,e=t.cl,m=t.m,c,f,g,h=0,i,k=t.sm,l,o,p,q,r=1,s,u,v,x1,x2,y1,y2,x,y,z;
+	if(!a) a=event;
+	if(d) u=d;
+	if(e) v=e;
+	if(u&&v)
+	{
+		c=_getRelativePointByEvent(a,m.div);
+		g=m.divToBitmapCoordinate(c.x,c.y);
+		if(k)
+		{
+			q=t.wayNodes;
+			q=!q?[]:q;
+			x1=Math.min(k[0].x,k[1].x)-5;
+			x2=Math.max(k[0].x,k[1].x)+5;
+			y1=Math.min(k[0].y,k[1].y)-5;
+			y2=Math.max(k[0].y,k[1].y)+5;
+			if(x1<g.x&&g.x<x2&&y1<g.y&&g.y<y2)
+			{
+				h=point2lineDistance(g.x,g.y,k[0].x,k[0].y,k[1].x,k[1].y);
+				if(h<5)
+				{
+					o=k[1].y-k[0].y;
+					p=k[1].x-k[0].x;
+					if(Math.abs(o)>Math.abs(p)){y=g.y;x=(y-k[0].y)*p/o+k[0].x}
+					else{x=g.x;y=o*(x-k[0].x)/p+k[0].y}
+					for(i=0;i<q.length;i++)
+					{
+						s=m.spec.getBitmap(q[i].y,q[i].x,m.getLevelIndex());
+						if(s.x>x-10&&x+10>s.x&&s.y>y-10&&y+10>s.y) {
+                            r=0;break;
+                        }
+					}
+					if(r)
+					{
+						t.show(u,e);
+                        d.setPosition(m.spec.getMer(x,y,m.getZoom()));
+						return
+					}
+				}
+			}
+			window.clearTimeout(t.hideTimer);
+			t.hideTimer=t.setTimeout(t.hide,100,u,e);
+		}
+        f = [];
+
+        // if(e.feature.segments && e.feature.levels)
+        // 		z =  _filterNodes(e.feature.segments,e.feature.levels,t.m.getZoom())[0];
+        // else
+        //		z =  e.feature.points;
+        z = e.path;
+        for(i=0;i<z.length;i++){      //将摩卡托转换为bitmap坐标
+            var zi = z[i];
+            f.push(m.spec.getBitmap(zi.y,zi.x,t.m.getLevelIndex()))
+        }
+		for(i=0;i<f.length-1;i++)
+		{
+			x1=Math.min(f[i].x,f[i+1].x)-5;
+			x2=Math.max(f[i].x,f[i+1].x)+5;
+			y1=Math.min(f[i].y,f[i+1].y)-5;
+			y2=Math.max(f[i].y,f[i+1].y)+5;
+			if(x1<g.x&&g.x<x2&&y1<g.y&&g.y<y2)
+			{
+				h=point2lineDistance(g.x,g.y,f[i].x,f[i].y,f[i+1].x,f[i+1].y);
+				if(h<5) {t.sm=[f[i],f[i+1]];
+				break}
+			}
+		}
+	}
+	else if(u) t.hide(u,e);
+};
+wyp.onMouseOver=function(a,b){
+	var t=this,c=t.tp,d,e,f,g,h,k,u="WP"+_uniqueId(),m=t.m;
+	if(a&&a.fType=="L"&&b){
+		d=b.latLng;
+		t.cl=a;
+        //g = a.feature.caption;
+        // if(g.byteLength() > 20)
+        //     h = "Lable01";
+        // else
+        //     h = "Lable02";
+		if(!c){
+            c = t.tp =new sogou.maps.Marker({
+            map:map,
+            position:d,
+            // label:{
+            //    visible:true,
+            //    pixelOffset:new Point(10,20),
+            //    style : h
+            // },
+            //styleId : "S1923",
+            id: u
+            });
+            c.setZIndex(9999);
+            c.setDraggable(true);
+            sogou.maps.SEvent.addListener(c,"drag",function(a){
+                t.isdging=1;
+                a.tar = c;
+                sogou.maps.SEvent.trigger(t,"draging",a,t.cl.path)}
+            );
+            sogou.maps.SEvent.addListener(c,"dragend",function(a){
+                t.isdging=0;
+                t.hide(c,t.cl);
+                sogou.maps.SEvent.trigger(t,"dragend",a.point,t.cl)
+            });
+	   }
+    c.getLabelObj() && c.getLabelObj().setStyle(h);
+	}
+};
+wyp.show=function(a,b){
+	var t = this;
+	a.setVisible(true);
+}
+wyp.hide=function(a,b){
+    if(!this.isdging){
+        a.setVisible(false);
+    }
+}
+*/
+/**
+*过滤限定了显示级别的点，只有显示级别低于等于当前缩放级别的点才被记录下来
+*@param a Array[Point]	所有的点坐标 [Point]
+*@param b Array[Number]   所有的点对应的显示级别 [Number]
+*@param c Number	当前的缩放级别
+*@return Array[Point] 符合当前缩放级别下显示的点
+*/
+/*
+function fixed2(str){
+	return parseFloat(str).toFixed(2);
+}
+
+function getJSONP(url, callback) {
+    if (!url) {
+        return;
+    }
+    var a = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']; //定义一个数组以便产生随机函数名
+    var r1 = Math.floor(Math.random() * 10);
+    var r2 = Math.floor(Math.random() * 10);
+    var r3 = Math.floor(Math.random() * 10);
+    var name = 'getJSONP' + a[r1] + a[r2] + a[r3];
+    url += '&cb=' + name;
+    var script = document.createElement('script');
+    //定义被脚本执行的回调函数
+    window[name] = function (e) {
+        try {
+        	callback && callback(e);
+        } catch (e) {
+        	console.log(e);
+        }
+        finally {//最后删除该函数与script元素
+            delete window[name];
+            script.parentNode.removeChild(script);
+        }
+
+    }
+    script.src = url;
+    document.getElementsByTagName('head')[0].appendChild(script);
+}
+function _filterNodes(a,b,c)
+{
+    var i,j,d=[];
+    if(!b)return a;
+    for(i=0;i<a.length;i++){
+        d[i]=[];
+        for(j=0;j<a[i].length;j++){
+            if(b[i][j]!=null&&b[i][j]<=c)d[i].push(a[i][j]);
+        }
+    }
+    return d
+}
+function _uniqueId(){
+	var a=Math.random,b=parseInt;
+	return Number(new Date()).toString()+b(10*a())+b(10*a())+b(10*a())
+}
+function _getRelativePointByEvent(a, b, c) {
+	if (!c) {
+		c = new sogou.maps.Point(0, 0)
+	}
+	var e = getPointByEvent(a),
+		f = _offsetPositionAbsolute(b);
+	c.x = e.x - f.x;
+	c.y = e.y - f.y
+	return c
+}
+
+function getPointByEvent(e) {
+	var b = document.documentElement,
+		c = document.body;
+	return {
+		x: e.pageX || (e.clientX + (b.scrollLeft || c.scrollLeft)),
+		y: e.pageY || (e.clientY + (b.scrollTop || c.scrollTop))
+	}
+}
+
+function _offsetPositionAbsolute(a) {
+	var b = {
+		"x": 0,
+		"y": 0
+	};
+	while (a) {
+		b.x += a.offsetLeft || 0;
+		b.y += a.offsetTop || 0;
+		a = a.offsetParent
+	}
+	return b
+}
+
+
 */
 
 
@@ -916,8 +1125,8 @@ var vm = {
 	methods:{
 		init(){
 			map&&map.clearAll();
-			LINKS = [];
-			POINTS = [];
+			links = [];
+			points = [];
 			//bounds = null;
 			//drawLinePoints = [];
 			routesArr = [];
@@ -969,8 +1178,8 @@ var vm = {
 			//对数据进行排序整理,地图绘制数据
 			//整理每一个planBox
 			for(var i=0,len = data.routes.length;i<len;i++){
-				LINKS.push(data.routes[i].links);
-				POINTS.push(data.routes[i].points);
+				links.push(data.routes[i].links);
+				points.push(data.routes[i].points);
 				var obj = {
 					index:i,
 					bgcolor:false,
