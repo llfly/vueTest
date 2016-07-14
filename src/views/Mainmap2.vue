@@ -60,7 +60,7 @@ function init(){
 	//实例化地图
 	var myOptions = {
 		'zoom': 14,
-		'center': new sogou.maps.Point(12958035.802,4828316.786);,
+		'center': new sogou.maps.Point(12958035.802,4828316.786),
 		'mapTypeId': sogou.maps.MapTypeId.ROADMAP
 	}
 	map = new sogou.maps.Map(document.getElementById("map_canvas"), myOptions);

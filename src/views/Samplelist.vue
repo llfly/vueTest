@@ -295,11 +295,16 @@ import API_ROOT from '../store/resources.js';
                 this.delShow = true;
         },
         printOut(){
+            var that = this;
+            this.items.forEach(function(item){
+                if(item.checked){
+                    that.checkedDel.push(item);
+                }
+            });
             if(this.checkedDel.length){
                 var arr = [];
-                var that = this;
                 for(var i=0,len = this.checkedDel.length;i<len;i++){
-                    arr.push(this.items.filter(function(item){return item.caseid == that.checkedDel[i];})[0].caseid);
+                    arr.push(this.checkedDel[i].caseid);
                 };
                 var url = API_ROOT + 'exportcase' + '&caseid=' + arr.join(',');
                 var iframe = document.createElement('iframe');

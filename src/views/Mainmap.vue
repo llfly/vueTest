@@ -40,6 +40,7 @@ var _keyWayPoints,_dragWayPoint;
 var _lastDragTime = 0;
 var routes = null;
 var routesArr = [];//画出的route
+var lineHadSave = false;//是否有线未保存
 //初始化
 function initialize(){
 	//加载样式
@@ -60,7 +61,7 @@ function initialize(){
 		id : "L0"
 		}
 	]);
-		sogou.maps.StyleLib.preLoadJson([{
+	sogou.maps.StyleLib.preLoadJson([{
 		"v:stroke" : {
 			"xmlns:v" : "v",
 			color : "#C87149",
@@ -166,6 +167,22 @@ function drawWayPointMarker(wayPoint, point, type) {
 			routing(wayPoints, dpi, dragging);
 	};
 
+	function getAllWayPoints(){
+		var wayPoints = [];
+		wayPoints.push(wayPoint.marker.position);
+		var prev = wayPoint.prevRoute;
+		var next = wayPoint.nextRoute;
+
+		while(prev){
+			wayPoints.unshift(prev.fromWayPoint.marker.position);
+			prev = prev.fromWayPoint.prevRoute;
+		}
+		while(next){
+			wayPoints.push(next.toWayPoint.marker.position);
+			next = next.toWayPoint.nextRoute;
+		}
+		return wayPoints;
+	}
 	if (type == 3) {
 		sogou.maps.event.addListener(marker, "click", function (e) {
 			routingByMarker(true, false);
@@ -182,14 +199,14 @@ function drawWayPointMarker(wayPoint, point, type) {
 		if (type == 3)
 			marker.setVisible(true); //防止因触发mouseout事情Marker不可见
 		//延迟执行
-		var curTime = now();
+		var curTime = Date.now();
 		if (!_lastDragTime)
 			_lastDragTime = curTime;
-		if (curTime - _lastDragTime < 400)
-			return;
-		_lastDragTime = curTime;
 
-		routingByMarker(true, true);
+		if (curTime - _lastDragTime > 400){
+			_lastDragTime = curTime;
+			routingByMarker(true, true);
+		}
 	});
 	//*/
 	sogou.maps.event.addListener(marker, "dragend", function (e) {
@@ -199,6 +216,14 @@ function drawWayPointMarker(wayPoint, point, type) {
 		marker.relocation = true;
 		_lastDragTime = 0;
 		routingByMarker(true, false);
+		var wayPoints = getAllWayPoints();
+		var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wayPoints.join(';');
+		setTimeout(function(){
+			getJSONP(url,getDATA);
+		},500)
+		//1. 获取所有的wayPoint
+		//2. 请求接口获取数据
+		//3. 结合左边
 	});
 
 	if (type == 3) {
@@ -220,6 +245,7 @@ function drawWayPointMarker(wayPoint, point, type) {
 
 	return marker;
 }
+//wayPoints对象(start,end),dpi,是否是拖拽，是否是第一次，第几条数据
 function routing(wayPoints, dpi, dragging,noData,index) {
 	var wp = "";
 	var bounds = new sogou.maps.Bounds();
@@ -238,8 +264,8 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 		//for(var i=0;i<routes.length;i++){
 			//routesArr.push();
 		//}
+		//从服务器端获取的第一次数据，起终点
 		drawRoute(routes[index || 0],wayPoints,dpi,dragging,noData)
-		//console.log(routesArr);
 	}else{
 		console.log(url);
 		getJSONP(url,function(data){
@@ -253,6 +279,7 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 		});
 	}
 }
+
 function drawRoute(jsonRes, wayPoints, dpi, dragging,noData) {
 	var routePath = [];
 	var jsonRoute = jsonRes;
@@ -260,7 +287,7 @@ function drawRoute(jsonRes, wayPoints, dpi, dragging,noData) {
 	//	jsonRoute = jsonRes.Route.Feature;
 	var curWayPoint = wayPoints[0];//起点
 	var lastWayPoint = wayPoints[wayPoints.length - 1];//终点
-
+	//debugger;
 	while (curWayPoint.nextRoute) {//作用？
 		curWayPoint.nextRoute.polyline.setMap(null);//清空所有的polyline
 		if(curWayPoint.nextRoute.linkPolyline){
@@ -287,7 +314,7 @@ function drawRoute(jsonRes, wayPoints, dpi, dragging,noData) {
 	var jsonWayPoints = jsonRoute.waypoints,i;
 	for (i = 0; i < wayPoints.length; ++i) {
 		if (i != dpi || !dragging) {
-			//拖拽等操作会使其他节点位置发生偏移，因此，对于没给节点我们只进行一次重定位
+			//拖拽等操作会使其他节点位置发生偏移，因此，对于每个节点我们只进行一次重定位
 			if (wayPoints[i].marker.relocation == true) {
 				wayPoints[i].marker.relocation = false;
 				var point;
@@ -420,7 +447,52 @@ function drawLinkPolyline(route, path, links){
 	}
 	return null;
 }
-
+function getDATA(response){
+	var obj;
+	if(response.status == 'success'){
+		if(lineHadSave){
+			DATA.pop();
+			lineHadSave = false;
+		}
+		var i = DATA[DATA.length]?DATA.length+1:DATA.length;
+		var data = response.routes[0];
+		obj = {
+			index:i,
+			bgcolor:false,
+			planIsHide:true,
+			name:'自定义',
+			eva:data.eva,
+			label:data.label,
+			reason:data.reason,
+			cost:fixed2(data.cost) + '分钟',
+			dis:fixed2(data.dis/1000) + '公里',
+			customBtn:true,
+			bestPlan:false,
+		}
+		postData[obj.index] = response;
+		if(data.light){
+			obj.trafficLight = data.light + '个红绿灯';
+		if(data.left)
+			obj.trafficLight +='('+ data.left + '个左转弯)';
+		}
+		if(data.jamnum){
+			obj.trafficBlock = data.jamnum+ '段拥堵';
+	 		if(data.jamlen)
+				obj.trafficBlock += '，共'+ fixed2(data.jamlen/1000) +'公里';
+		}
+		if(data.lanelen){
+			obj.pathway = '小路' + fixed2(data.lanelen/1000) + '公里';
+		}
+		if( data.lklen){
+			obj.roadCondi = '有路况' + fixed2(data.lklen/1000) + '公里';
+		}
+		obj.type = '新自定义';
+		DATA.push(obj);
+		lineHadSave = true;
+	}else{
+		console.log('请求失败');
+	}
+}
 
 //--------------------------------------------------------------------------------//
 //tool methods
@@ -458,8 +530,8 @@ function getJSONP(url, callback) {
         	console.log(e);
         }
         finally {//最后删除该函数与script元素
-            delete window[name];
-            script.parentNode.removeChild(script);
+        	delete window[name];
+        	script.parentNode.removeChild(script);
         }
 
     }
@@ -498,6 +570,9 @@ function getStyleJson() {
 		c.push(j);
 	}
 	return c;
+}
+function fixed2(str){
+	return parseFloat(str).toFixed(2);
 }
 //-------------------------------------------------------------------------------------//
 
