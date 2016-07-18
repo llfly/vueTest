@@ -1266,7 +1266,8 @@ var vm = {
 			if(bool){
 				if(sessionStorage.user){
 				//上传数据
-					var url = API_ROOT + 'submiteva';
+					var url = API_ROOT;
+					url += CaseTYPE == 'getmatchroute'?'submitmatch':'submiteva';
 
 					this.$http.post(url,{
 						"taskid":+this.$route.params.taskid,

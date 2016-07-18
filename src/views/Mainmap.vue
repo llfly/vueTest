@@ -90,27 +90,25 @@ function initialize(){
 	setStart(1);
 
 	//根据现有数据画线
-	ROUTE = new DrawLines(LINKS,POINTS);
+	ROUTE = new DrawLines();
+	LINKS = null;
+	POINTS = null;
 	fitBounds(POINTS);
 }
-
-
-function DrawLines(links,points){
-	this.links = links;
-	this.points = points;
-	this.drawLinePoints = [];
+function DrawLines(){
 	this.lines = [];
 	this.init();
 
 }
 DrawLines.prototype.init = function(){
 	//获取所有的路况点
-	for(var i=0,len = this.links.length;i<len;i++){
-		this.drawLinePoints.push(this.dealPoints(this.links[i],this.points[i]));
+	var drawLinePoints = [];
+	for(var i=0,len = LINKS.length;i<len;i++){
+		drawLinePoints.push(this.dealPoints(LINKS[i],POINTS[i]));
 	}
-	if(this.drawLinePoints.length){
-		for(i=0,len=this.drawLinePoints.length;i<len;i++){
-			this.lines.push(this.drawMap(this.links[i],this.drawLinePoints[i]));
+	if(drawLinePoints.length){
+		for(i=0,len=drawLinePoints.length;i<len;i++){
+			this.lines.push(this.drawMap(LINKS[i],drawLinePoints[i]));
 		}
 	}
 }
@@ -156,10 +154,9 @@ var _curX, _curY;
 var _keyWayPoints,_dragWayPoint;
 var _lastDragTime = 0;
 var routes = null;
-var routesArr = [];//画出的route
 var lineHadSave = false;//是否有线未保存
 //初始化
-
+var curPolyLine;
 //设置起终点
 function setStart(i) {
 	if (_dragWayPoint)
@@ -232,6 +229,21 @@ function drawWayPointMarker(wayPoint, point, type) {
 			routing(wayPoints, dpi, dragging);
 	};
 
+	function getAllPolyline(){
+		var polylineArr = [];
+		var prev = wayPoint.prevRoute;
+		var next = wayPoint.nextRoute;
+		while(prev){
+			polylineArr.unshift(prev.polyline);
+			prev = prev.fromWayPoint.prevRoute;
+		}
+		while(next){
+			polylineArr.push(next.polyline);
+			next = next.toWayPoint.nextRoute;
+		}
+		console.log(polylineArr);
+
+	}
 	function getAllWayPoints(){
 		var wayPoints = [];
 		wayPoints.push(wayPoint.marker.position);
@@ -282,9 +294,16 @@ function drawWayPointMarker(wayPoint, point, type) {
 		_lastDragTime = 0;
 		routingByMarker(true, false);
 		var wayPoints = getAllWayPoints();
+		curPolyLine = getAllPolyline();
 		var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wayPoints.join(';');
 		setTimeout(function(){
-			getJSONP(url,getDATA);
+			getJSONP(url,function(data){
+				if(data.status == 'success'){
+					getDATA(data);
+				}else{
+					console.log('请求失败');
+				}
+			});
 		},500)
 		//1. 获取所有的wayPoint
 		//2. 请求接口获取数据
@@ -307,7 +326,13 @@ function drawWayPointMarker(wayPoint, point, type) {
 				routingByMarker(false, false);
 				var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wayPoints.join(';');
 				setTimeout(function(){
-					getJSONP(url,getDATA);
+					getJSONP(url,function(data){
+						if(data.status == 'success'){
+							getDATA(data);
+						}else{
+							console.log('请求失败');
+						}
+					});
 				},500)
 			}
 			//阻止map右键菜单
@@ -336,7 +361,7 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 	var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wp;
 	if(noData){
 		//从服务器端获取的第一次数据，起终点
-		drawRoute(routes[index || 0],wayPoints,dpi,dragging,noData,index)
+		drawRoute(routes[index || 0],wayPoints,dpi,dragging,noData,index);
 	}else{
 		console.log(url);
 		getJSONP(url,function(data){
@@ -352,7 +377,6 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 }
 
 function drawRoute(jsonRes, wayPoints, dpi, dragging,noData,index) {
-	var routePath = [];
 	var jsonRoute = jsonRes;
 	//if(dragging)
 	//	jsonRoute = jsonRes.Route.Feature;
@@ -378,7 +402,7 @@ function drawRoute(jsonRes, wayPoints, dpi, dragging,noData,index) {
 	if (dpi > 0 && dpi < wayPoints.length - 1 && !dragging && wayPoints[1] == _dragWayPoint) {
 		wayPoints[1] = new WayPoint(wayPoints[1].marker.getPosition(), 2);
 	}
-
+	//points有问题？
 	var allPoints = jsonRoute["points"];
 	//var allLevels = fn["levels"][0];
 
@@ -432,10 +456,8 @@ function drawRoute(jsonRes, wayPoints, dpi, dragging,noData,index) {
 		wayPoints[i + 1].prevRoute = route;
 		route.fromWayPoint = wayPoints[i];
 		route.toWayPoint = wayPoints[i + 1];
-		routePath.push(route);
 	}
 
-	return routePath;
 }
 function Route(path, levels, links,index) {
 	var t = this;
@@ -443,8 +465,8 @@ function Route(path, levels, links,index) {
 	t.toWayPoint = null;
 	//t.links = links;
 	//t.linkPolyline = drawLinkPolyline(t,path,links);
-	if(ROUTE.lines[index]){
-		t.linkPolyline = true;
+	if(ROUTE.lines[index]){//在ROUTE中已经存在，使用透明样式
+		t.hasLinkLine = true;
 	}
 	t.polyline = drawRoutePolyline(t, path, levels);
 }
@@ -454,7 +476,7 @@ function drawRoutePolyline(route, path, levels) {
 	//fn.levels = [0];
 	fn.type = "L";
 
-	var styleId = route.linkPolyline?'L1':'L0';
+	var styleId = route.hasLinkLine?'L1':'L0';
 	var polyline = new sogou.maps.Polyline({
 			//path:path,
 			'feature' : fn,
@@ -479,93 +501,89 @@ function drawRoutePolyline(route, path, levels) {
 	return polyline;
 }
 //路况 线
-function drawLinkPolyline(route, path, links){
-	var zero = links.every(function(item){
-		return item.level == 0;
-	});
-	if(zero){
-		return;
-	}
-	var colorArr = ['#C87149','#7FBD09','#F2850D','#E41515','#630000'];
-	var pathArr = [];
-	var linkArr = [];
-	if(links&&links.length){//links存在
-		for(var i=0 , len=links.length ; i<len; i++){
-			var start = links[i]&&links[i].index;
-			var end = (links[i+1] && links[i+1].index) || path.length;
-			var arr = [];
-			for(var j = start;j<=end;j++){
-				if(path[j]!=undefined)
-	 				arr.push(path[j]);
-			}
-			linkArr.push(arr);
-		}
-		for(var i=0,len = linkArr.length;i<len;i++){
-			try{
-				var p = new sogou.maps.Polyline({
-		            'path':linkArr[i],
-		            "map": map,
-		            //strokeColor: "#FF0000",
-				    opacity: 0.2,
-				    strokeWeight: 5,
-		            strokeColor: colorArr[links[i].level],
-		            dashstyle:"Solid",
-		            //isFixed:true
-        	});
-        		pathArr.push(p);
-        	}catch (ex){
-        		console.log(ex);
-    		}
-		}
-		return pathArr;
-	}
-	return null;
-}
+// function drawLinkPolyline(route, path, links){
+// 	var zero = links.every(function(item){
+// 		return item.level == 0;
+// 	});
+// 	if(zero){
+// 		return;
+// 	}
+// 	var colorArr = ['#C87149','#7FBD09','#F2850D','#E41515','#630000'];
+// 	var pathArr = [];
+// 	var linkArr = [];
+// 	if(links&&links.length){//links存在
+// 		for(var i=0 , len=links.length ; i<len; i++){
+// 			var start = links[i]&&links[i].index;
+// 			var end = (links[i+1] && links[i+1].index) || path.length;
+// 			var arr = [];
+// 			for(var j = start;j<=end;j++){
+// 				if(path[j]!=undefined)
+// 	 				arr.push(path[j]);
+// 			}
+// 			linkArr.push(arr);
+// 		}
+// 		for(var i=0,len = linkArr.length;i<len;i++){
+// 			try{
+// 				var p = new sogou.maps.Polyline({
+// 		            'path':linkArr[i],
+// 		            "map": map,
+// 		            //strokeColor: "#FF0000",
+// 				    opacity: 0.2,
+// 				    strokeWeight: 5,
+// 		            strokeColor: colorArr[links[i].level],
+// 		            dashstyle:"Solid",
+// 		            //isFixed:true
+//         	});
+//         		pathArr.push(p);
+//         	}catch (ex){
+//         		console.log(ex);
+//     		}
+// 		}
+// 		return pathArr;
+// 	}
+// 	return null;
+// }
 function getDATA(response){
 	var obj;
-	if(response.status == 'success'){
-		if(lineHadSave){
-			DATA.pop();
-			lineHadSave = false;
-		}
-		var i = DATA[DATA.length]?DATA.length+1:DATA.length;
-		var data = response.routes[0];
-		obj = {
-			index:i,
-			bgcolor:false,
-			planIsHide:true,
-			name:'自定义',
-			eva:data.eva,
-			label:data.label,
-			reason:data.reason,
-			cost:fixed2(data.cost) + '分钟',
-			dis:fixed2(data.dis/1000) + '公里',
-			customBtn:true,
-			bestPlan:false,
-		}
-		postData[obj.index] = response;
-		if(data.light){
-			obj.trafficLight = data.light + '个红绿灯';
-		if(data.left)
-			obj.trafficLight +='('+ data.left + '个左转弯)';
-		}
-		if(data.jamnum){
-			obj.trafficBlock = data.jamnum+ '段拥堵';
-	 		if(data.jamlen)
-				obj.trafficBlock += '，共'+ fixed2(data.jamlen/1000) +'公里';
-		}
-		if(data.lanelen){
-			obj.pathway = '小路' + fixed2(data.lanelen/1000) + '公里';
-		}
-		if( data.lklen){
-			obj.roadCondi = '有路况' + fixed2(data.lklen/1000) + '公里';
-		}
-		obj.type = '新自定义';
-		DATA.push(obj);
-		lineHadSave = true;
-	}else{
-		console.log('请求失败');
+	if(lineHadSave){
+		DATA.pop();
+		lineHadSave = false;
 	}
+	var i = DATA[DATA.length]?DATA.length+1:DATA.length;
+	var data = response.routes[0];
+	obj = {
+		index:i,
+		bgcolor:false,
+		planIsHide:true,
+		name:'自定义',
+		eva:data.eva,
+		label:data.label,
+		reason:data.reason,
+		cost:fixed2(data.cost) + '分钟',
+		dis:fixed2(data.dis/1000) + '公里',
+		customBtn:true,
+		bestPlan:false,
+	}
+	postData[obj.index] = response;
+	if(data.light){
+		obj.trafficLight = data.light + '个红绿灯';
+	if(data.left)
+		obj.trafficLight +='('+ data.left + '个左转弯)';
+	}
+	if(data.jamnum){
+		obj.trafficBlock = data.jamnum+ '段拥堵';
+ 		if(data.jamlen)
+			obj.trafficBlock += '，共'+ fixed2(data.jamlen/1000) +'公里';
+	}
+	if(data.lanelen){
+		obj.pathway = '小路' + fixed2(data.lanelen/1000) + '公里';
+	}
+	if( data.lklen){
+		obj.roadCondi = '有路况' + fixed2(data.lklen/1000) + '公里';
+	}
+	obj.type = '新自定义';
+	DATA.push(obj);
+	lineHadSave = true;
 }
 
 //--------------------------------------------------------------------------------//
@@ -586,7 +604,6 @@ function getJSONP(url, callback) {
     var r3 = Math.floor(Math.random() * 10);
     var name = 'getJSONP' + a[r1] + a[r2] + a[r3];
     url += '&cb=' + name;
-    var script = document.createElement('script');
     //定义被脚本执行的回调函数
     window[name] = function (e) {
         try {
@@ -600,6 +617,7 @@ function getJSONP(url, callback) {
         }
 
     }
+    var script = document.createElement('script');
     script.src = url;
     document.getElementsByTagName('head')[0].appendChild(script);
 }
@@ -909,7 +927,6 @@ var vm = {
 			POINTS = [];
 			//bounds = null;
 			//drawLinePoints = [];
-			routesArr = [];
 			//lines = [];
 			//this.leftInfo = [];
 			DATA = [];
@@ -1046,7 +1063,8 @@ var vm = {
 			if(bool){
 				if(sessionStorage.user){
 				//上传数据
-					var url = API_ROOT + 'submiteva';
+					var url = API_ROOT;
+					url += CaseTYPE == 'getmatchroute'?'submitmatch':'submiteva';
 
 					this.$http.post(url,{
 						"taskid":+this.$route.params.taskid,
@@ -1157,6 +1175,8 @@ var vm = {
 								lineHadSave = false;
 								this.getItem(index).customBtn = false;
 								this.getItem(index).type = '老自定义';
+								ROUTE.lines.push(curPolyLine);
+								curPolyLine = null;
 							}else if(response.data.detail == 'Error:route name is already exist.'){
 								alert('名称重复，保存失败');
 							}else{
@@ -1191,11 +1211,13 @@ var vm = {
 					});
 					//删除地图区线路
 					//lines[index]
+					debugger;
 					if(ROUTE.lines[index]){
 						for(var i=0,len=ROUTE.lines[index].length;i<len;i++){
 							ROUTE.lines[index][i].setMap(null);
 						}
-						ROUTE.splice(index,1);
+						debugger;
+						ROUTE.lines.splice(index,1);
 					}
 					}else{
 						alert('删除失败！');

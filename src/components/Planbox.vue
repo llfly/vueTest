@@ -174,7 +174,7 @@
 			},
 			//删除按钮 显示隐藏
 			isDel:function(){
-				if( (this.planType == 'getevaroute' || this.planType == 'getmatchroute' ) && (this.type == '老自定义' || this.type == '新自定义')){
+				if( (this.planType == 'getevaroute' || this.planType == 'getmatchroute' ) && (this.type == '老自定义' /*|| this.type == '新自定义'*/)){
 					return true;
 				}
 				return false;
