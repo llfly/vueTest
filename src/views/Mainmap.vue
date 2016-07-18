@@ -92,8 +92,9 @@ function initialize(){
 	//根据现有数据画线
 	ROUTE = new DrawLines();
 	LINKS = null;
-	POINTS = null;
 	fitBounds(POINTS);
+	POINTS = null;
+
 }
 function DrawLines(){
 	this.lines = [];
@@ -241,8 +242,7 @@ function drawWayPointMarker(wayPoint, point, type) {
 			polylineArr.push(next.polyline);
 			next = next.toWayPoint.nextRoute;
 		}
-		console.log(polylineArr);
-
+		return polylineArr;
 	}
 	function getAllWayPoints(){
 		var wayPoints = [];
@@ -294,7 +294,12 @@ function drawWayPointMarker(wayPoint, point, type) {
 		_lastDragTime = 0;
 		routingByMarker(true, false);
 		var wayPoints = getAllWayPoints();
-		curPolyLine = getAllPolyline();
+		if(lineHadSave){
+			ROUTE.lines.pop();
+			ROUTE.lines.push(getAllPolyline());
+		}else{
+			ROUTE.lines.push(getAllPolyline());
+		}
 		var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wayPoints.join(';');
 		setTimeout(function(){
 			getJSONP(url,function(data){
@@ -378,6 +383,9 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 
 function drawRoute(jsonRes, wayPoints, dpi, dragging,noData,index) {
 	var jsonRoute = jsonRes;
+	if(!jsonRoute){
+		return;
+	}
 	//if(dragging)
 	//	jsonRoute = jsonRes.Route.Feature;
 	var curWayPoint = wayPoints[0];//起点
@@ -1175,8 +1183,6 @@ var vm = {
 								lineHadSave = false;
 								this.getItem(index).customBtn = false;
 								this.getItem(index).type = '老自定义';
-								ROUTE.lines.push(curPolyLine);
-								curPolyLine = null;
 							}else if(response.data.detail == 'Error:route name is already exist.'){
 								alert('名称重复，保存失败');
 							}else{
