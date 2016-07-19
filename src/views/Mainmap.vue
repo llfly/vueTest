@@ -90,26 +90,26 @@ function initialize(){
 	setStart(1);
 
 	//根据现有数据画线
-	ROUTE = new DrawLines();
+	ROUTE = new DrawLines(LINKS,POINTS);
 	LINKS = null;
 	fitBounds(POINTS);
 	POINTS = null;
 
 }
-function DrawLines(){
+function DrawLines(links,points){
 	this.lines = [];
-	this.init();
+	this.init(links,points);
 
 }
-DrawLines.prototype.init = function(){
+DrawLines.prototype.init = function(links,points){
 	//获取所有的路况点
 	var drawLinePoints = [];
-	for(var i=0,len = LINKS.length;i<len;i++){
-		drawLinePoints.push(this.dealPoints(LINKS[i],POINTS[i]));
+	for(var i=0,len = links.length;i<len;i++){
+		drawLinePoints.push(this.dealPoints(links[i],points[i]));
 	}
 	if(drawLinePoints.length){
 		for(i=0,len=drawLinePoints.length;i<len;i++){
-			this.lines.push(this.drawMap(LINKS[i],drawLinePoints[i]));
+			this.lines.push(this.drawMap(links[i],drawLinePoints[i]));
 		}
 	}
 }
@@ -130,14 +130,16 @@ DrawLines.prototype.dealPoints = function(link,point){
 }
 //绘制地图
 DrawLines.prototype.drawMap = function(color,path){
-	var colorArr = ['#C87149','#7FBD09','#F2850D','#E41515','#630000'];
+
+	//var colorArr = ['#C87149','#7FBD09','#F2850D','#E41515','#630000'];
+	var colorArr = ['#0000ff','#00ff00','#ffff00','#ee4444','#990000'];
 	var pathArr = [];
 	for(var i=0,len = path.length;i<len;i++){
 		try{
 			var p = new sogou.maps.Polyline({
-	            'path':path[i],
-	            "map": map,
-			    opacity: 0.3,
+	            path:path[i],
+	            map: map,
+			    strokeOpacity: 0.3,
 			    strokeWeight: 3,
 	            strokeColor: colorArr[color[i].level],
 	            dashstyle:"Solid",
@@ -156,8 +158,6 @@ var _keyWayPoints,_dragWayPoint;
 var _lastDragTime = 0;
 var routes = null;
 var lineHadSave = false;//是否有线未保存
-//初始化
-var curPolyLine;
 //设置起终点
 function setStart(i) {
 	if (_dragWayPoint)
@@ -231,18 +231,17 @@ function drawWayPointMarker(wayPoint, point, type) {
 	};
 
 	function getAllPolyline(){
-		var polylineArr = [];
+		//var polylineArr = [];
 		var prev = wayPoint.prevRoute;
 		var next = wayPoint.nextRoute;
 		while(prev){
-			polylineArr.unshift(prev.polyline);
+			prev.polyline.setMap(null);
 			prev = prev.fromWayPoint.prevRoute;
 		}
 		while(next){
-			polylineArr.push(next.polyline);
+			next.polyline.setMap(null);
 			next = next.toWayPoint.nextRoute;
 		}
-		return polylineArr;
 	}
 	function getAllWayPoints(){
 		var wayPoints = [];
@@ -287,32 +286,31 @@ function drawWayPointMarker(wayPoint, point, type) {
 	});
 	//*/
 	sogou.maps.event.addListener(marker, "dragend", function (e) {
-		marker.position.x = e.point.x;
-		marker.position.y = e.point.y;
-		marker.dragging = false;
-		marker.relocation = true;
-		_lastDragTime = 0;
-		routingByMarker(true, false);
-		var wayPoints = getAllWayPoints();
-		if(lineHadSave){
-			ROUTE.lines.pop();
-			ROUTE.lines.push(getAllPolyline());
-		}else{
-			ROUTE.lines.push(getAllPolyline());
-		}
-		var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wayPoints.join(';');
-		setTimeout(function(){
-			getJSONP(url,function(data){
-				if(data.status == 'success'){
-					getDATA(data);
-				}else{
-					console.log('请求失败');
-				}
-			});
-		},500)
-		//1. 获取所有的wayPoint
-		//2. 请求接口获取数据
-		//3. 结合左边
+			marker.position.x = e.point.x;
+			marker.position.y = e.point.y;
+			marker.dragging = false;
+			marker.relocation = true;
+			_lastDragTime = 0;
+			routingByMarker(true, false);
+			var wayPoints = getAllWayPoints();
+
+			// if(lineHadSave){
+			// 	ROUTE.lines.pop();
+			// 	ROUTE.lines.push(getAllPolyline());
+			// }else{
+			// 	ROUTE.lines.push(getAllPolyline());
+			// }
+			//getAllPolyline();
+			var url = API_ROOT + 'getroute' + '&caseid=' + CaseID + '&points=' + wayPoints.join(';');
+			setTimeout(function(){
+				getJSONP(url,function(data){
+					if(data.status == 'success'){
+						getDATA(data);
+					}else{
+						console.log('请求失败');
+					}
+				});
+			},500)
 	});
 
 	if (type == 3) {
@@ -390,14 +388,9 @@ function drawRoute(jsonRes, wayPoints, dpi, dragging,noData,index) {
 	//	jsonRoute = jsonRes.Route.Feature;
 	var curWayPoint = wayPoints[0];//起点
 	var lastWayPoint = wayPoints[wayPoints.length - 1];//终点
-	//debugger;
+
 	while (curWayPoint.nextRoute) {//作用？
 		curWayPoint.nextRoute.polyline.setMap(null);//清空所有的polyline
-		if(curWayPoint.nextRoute.linkPolyline){
-			for(var i=0,len = curWayPoint.nextRoute.linkPolyline.length;i<len;i++){
-				curWayPoint.nextRoute.linkPolyline[i].setMap(null);
-			}
-		}
 		curWayPoint = curWayPoint.nextRoute.toWayPoint;
 
 		if (curWayPoint == lastWayPoint)
@@ -465,7 +458,6 @@ function drawRoute(jsonRes, wayPoints, dpi, dragging,noData,index) {
 		route.fromWayPoint = wayPoints[i];
 		route.toWayPoint = wayPoints[i + 1];
 	}
-
 }
 function Route(path, levels, links,index) {
 	var t = this;
@@ -484,12 +476,16 @@ function drawRoutePolyline(route, path, levels) {
 	//fn.levels = [0];
 	fn.type = "L";
 
-	var styleId = route.hasLinkLine?'L1':'L0';
+	//var styleId = route.hasLinkLine?'L1':'L0';
+	var opacity = route.hasLinkLine?'0.0':'1';
 	var polyline = new sogou.maps.Polyline({
-			//path:path,
 			'feature' : fn,
 			'map' : map,
-			'styleId' :styleId
+			//'styleId' :styleId,
+			strokeOpacity: opacity,
+			strokeWeight: 5,
+	        strokeColor: '#0000ff',
+	        //dashstyle:"Solid",
 		});
 	sogou.maps.event.addListener(polyline, "mousemove", function (e) {
 		if (_dragWayPoint) {
@@ -555,6 +551,7 @@ function getDATA(response){
 	var obj;
 	if(lineHadSave){
 		DATA.pop();
+		ROUTE.lines.pop();
 		lineHadSave = false;
 	}
 	var i = DATA[DATA.length]?DATA.length+1:DATA.length;
@@ -591,6 +588,10 @@ function getDATA(response){
 	}
 	obj.type = '新自定义';
 	DATA.push(obj);
+	var line = new DrawLines(new Array(data.links),new Array(data.points)).lines;
+	//ROUTE.lines[ROUTE.lines.length] = line;
+	ROUTE.lines.push(line[0]);
+	debugger;
 	lineHadSave = true;
 }
 
@@ -683,6 +684,7 @@ function selectPath(index){
 		}
 	}
 	if(index || index == 0){
+		debugger;
 		//高亮选中道路
 		for(i=0,len= ROUTE.lines[index].length;i<len;i++){
 			ROUTE.lines[index][i].setStyle({"StyleStroke":{opacity:"1",weight:'5px'}});
@@ -701,8 +703,6 @@ function selectPath(index){
 
 /*
 var drawLinePoints = [];//结合links和points处理之后的点对象
-
-
 var dragArr = [];
 var intObj = null;
 
@@ -823,53 +823,6 @@ function dragend(a,b,c){
 	isFirst=1;
 	isMove=false;
 }
-function getDragData(response){
-	//获取拖拽数据
-	//生成新路线
-	//生成新框
-	//map.clearAll();
-	selectPath();
-	var data = response.routes[0];
-	var path = dealPoints(data.links,data.points);
-	var i = DATA[DATA.length]?DATA.length+1:DATA.length;
-	var obj = {
-		index:i,
-		bgcolor:false,
-		planIsHide:true,
-		name:'自定义',
-		eva:data.eva,
-		label:data.label,
-		reason:data.reason,
-		cost:fixed2(data.cost) + '分钟',
-		dis:fixed2(data.dis/1000) + '公里',
-		customBtn:true,
-		bestPlan:false,
-	};
-	postData[obj.index] = response;
-	if(data.light){
-		obj.trafficLight = data.light + '个红绿灯';
-		if(data.left)
-			obj.trafficLight +='('+ data.left + '个左转弯)';
-	}
-	if(data.jamnum){
-		obj.trafficBlock = data.jamnum+ '段拥堵';
- 		if(data.jamlen)
-			obj.trafficBlock += '，共'+ fixed2(data.jamlen/1000) +'公里';
-	}
-	if(data.lanelen){
-		obj.pathway = '小路' + fixed2(data.lanelen/1000) + '公里';
-	}
-	if( data.lklen){
-		obj.roadCondi = '有路况' + fixed2(data.lklen/1000) + '公里';
-	}
-	obj.type = '新自定义';
-	dragLinesArr = drawMap(data.links,path);
-	for(var i=0,len= dragLinesArr.length;i<len;i++){
-		dragLinesArr[i].setStyle({"StyleStroke":{opacity:"1",weight:'5px'}});
-	}
-	intObj = obj;
-}
-
 */
 
 
@@ -1177,7 +1130,6 @@ var vm = {
 							"Content-Type":"application/x-www-form-urlencoded"
 						}
 					}).then((response)=>{
-						console.log(response);
 							if(response.data.status == "success"){
 								alert('保存成功');
 								lineHadSave = false;
