@@ -1,5 +1,5 @@
 <template>
-	<div class="leftMainBox"  v-cloak>
+	<div class="leftMainBox">
 		<Plan-info :start.sync="start" :end.sync="end"  :lktime.sync="lktime"  :eva.sync="eva"></Plan-info>
 		<div class="plans">
 			<Planbox v-for="item in leftInfo" track-by="$index" :name.sync='item.name' :time='item.cost' :dist='item.dis' :traffic-light='item.trafficLight' :traffic-block='item.trafficBlock' :pathway="item.pathway" :road-condi="item.roadCondi" :type.sync="item.type" :is-eva.sync="isEva" :plan-is-hide.sync='item.planIsHide' :eva="item.eva" :reason="item.reason" :is-best-plan.sync="item.bestPlan" @click="turnPlan(item.index)" :index="item.index" :class="{'bgColor':item.bgcolor}" :plan-type="planType" :label.sync="item.label" :custom-btn="item.customBtn"></Planbox>
@@ -175,7 +175,6 @@ function setStart(i) {
 	// 	routing(_keyWayPoints, -1, false, true);
 	// }
 }
-
 //type:0--start,1--target,2--drag,3--temp drag
 function WayPoint(point, type, route) {
 	var t = this;
@@ -279,7 +278,7 @@ function drawWayPointMarker(wayPoint, point, type) {
 		if (!_lastDragTime)
 			_lastDragTime = curTime;
 
-		if (curTime - _lastDragTime > 400){
+		if (curTime - _lastDragTime > 1000){
 			_lastDragTime = curTime;
 			routingByMarker(true, true);
 		}
@@ -378,7 +377,6 @@ function routing(wayPoints, dpi, dragging,noData,index) {
 		});
 	}
 }
-
 function drawRoute(jsonRes, wayPoints, dpi, dragging,noData,index) {
 	var jsonRoute = jsonRes;
 	if(!jsonRoute){
@@ -551,7 +549,8 @@ function getDATA(response){
 	var obj;
 	if(lineHadSave){
 		DATA.pop();
-		ROUTE.lines.pop();
+		//ROUTE.lines.pop();
+		//routes.pop();
 		lineHadSave = false;
 	}
 	var i = DATA[DATA.length]?DATA.length+1:DATA.length;
@@ -588,21 +587,18 @@ function getDATA(response){
 	}
 	obj.type = '新自定义';
 	DATA.push(obj);
-	var line = new DrawLines(new Array(data.links),new Array(data.points)).lines;
-	//ROUTE.lines[ROUTE.lines.length] = line;
-	ROUTE.lines.push(line[0]);
-	debugger;
+	//var line = new DrawLines(new Array(data.links),new Array(data.points)).lines;
+	//ROUTE.lines.push(line[0]);
+
+
+
+	//routes.push(1);
+	//selectPath(ROUTE.lines.length-1);
 	lineHadSave = true;
 }
 
 //--------------------------------------------------------------------------------//
 //tool methods
-//选择对应的route 进行高亮
-// function selectPath(index){
-// 	if (_keyWayPoints[0] && _keyWayPoints[1]) {
-// 		routing(_keyWayPoints, -1, false, true,index);
-// 	}
-// }
 function getJSONP(url, callback) {
     if (!url) {
         return;
@@ -619,10 +615,11 @@ function getJSONP(url, callback) {
         	callback && callback(e);
         } catch (e) {
         	console.log(e);
-        }
-        finally {//最后删除该函数与script元素
-        	delete window[name];
-        	script.parentNode.removeChild(script);
+        }finally {//最后删除该函数与script元素
+        	setTimeout(function(){
+        		delete window[name];
+        		script.parentNode.removeChild(script);
+        	},2000)
         }
 
     }
@@ -676,19 +673,18 @@ function fitBounds(points){
 	map&&map.fitBounds(bounds);
 }
 function selectPath(index){
-	for(var i=0,len= ROUTE.lines.length;i<len;i++){
-		if(ROUTE.lines[i]){
-			for(var j=0,len1 = ROUTE.lines[i].length;j<len1;j++){
-				ROUTE.lines[i][j].setStyle({"StyleStroke":{opacity:"0.3",weight:'3px'}});
-			}
+	ROUTE.lines.forEach(function(item){
+		if(item){
+			item.forEach(function(i){
+				i.setStyle({"StyleStroke":{opacity:"0.3",weight:'3px'}});
+			})
 		}
-	}
+	})
 	if(index || index == 0){
-		debugger;
 		//高亮选中道路
-		for(i=0,len= ROUTE.lines[index].length;i<len;i++){
-			ROUTE.lines[index][i].setStyle({"StyleStroke":{opacity:"1",weight:'5px'}});
-		}
+		ROUTE.lines[index].forEach(function(item){
+			item.setStyle({"StyleStroke":{opacity:"1",weight:'5px'}});
+		})
 		//添加对应的拖拽逻辑
 		if (_keyWayPoints[0] && _keyWayPoints[1]) {
 			routing(_keyWayPoints, -1, false, true,index);
@@ -927,7 +923,7 @@ var vm = {
 			this.start = data.start;
 			this.caseid = data.caseid;
 			this.end = data.end;
-			this.eva = data.eva;
+			this.eva = data.eva=="null"?'未评价':data.eva;
 			this.lktime = data.lktime;
 			routes = data.routes;
 			startPoint = data.routes[0].points[0];
@@ -997,9 +993,14 @@ var vm = {
 		//显示全部逻辑
 		showAllPlan(){
 			var that = this;
-			for(var i=0,len = this.planHided.length;i<len;i++){
-				this.planHided[i].planIsHide = true;
-			}
+			this.planHided.forEach(function(item){
+				if(ROUTE.lines[item.index]){
+					ROUTE.lines[item.index].forEach(function(item){
+						item.setStyle({"StyleStroke":{opacity:"0.3"}});
+					})
+				}
+				item.planIsHide = true;
+			});
 			this.planHided.length = 0;
 			this.planHasHide = false;
 		},
@@ -1054,6 +1055,7 @@ var vm = {
 								if(this.planType == 'getevaroute'){
 									this.eva = read;
 								}
+								this.evaPlanCur.reason = assessText;
 							}
 						},(response)=>{
 							alert('评价失败');
@@ -1102,6 +1104,8 @@ var vm = {
 							if(response.data.status == "success"){
 								alert('操作成功');
 								this.bestPlanCur.bestPlan = !this.bestPlanCur.bestPlan;
+								debugger;
+								this.bestPlanCur.reason = assessText;
 							}
 						},(response)=>{
 							alert('操作失败');
@@ -1114,7 +1118,12 @@ var vm = {
 		},
 		//隐藏逻辑
 		hidePlan(index){
-			this.planHasHide = true;
+			this.planHasHide = true;//隐藏对应框
+			if(ROUTE.lines[index]){
+				ROUTE.lines[index].forEach(function(item){
+					item.setStyle({"StyleStroke":{opacity:"0.0"}});
+				})
+			}
 			var item = this.getItem(index);
 			this.planHided.push(item);
 			item.planIsHide = false;
@@ -1169,13 +1178,11 @@ var vm = {
 					});
 					//删除地图区线路
 					//lines[index]
-					debugger;
 					if(ROUTE.lines[index]){
 						for(var i=0,len=ROUTE.lines[index].length;i<len;i++){
 							ROUTE.lines[index][i].setMap(null);
 						}
-						debugger;
-						ROUTE.lines.splice(index,1);
+						ROUTE.lines[index] = null;
 					}
 					}else{
 						alert('删除失败！');
@@ -1221,8 +1228,5 @@ module.exports = vm;
 	.returnBtn{
 		color:blue;
 		cursor: pointer;
-	}
-	[v-cloak] {
-  		display: none;
 	}
 </style>

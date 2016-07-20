@@ -37,17 +37,17 @@
 			</thead>
 			<tbody>
 				<tr v-for='item in items'>
-					<td>{{item.index}}</td>
-					<td>{{item.start}}</td>
-					<td>{{item.end}}</td>
-					<td>{{item.time}}</td>
-					<td>{{item.dist}}</td>
-					<td>{{item.conditionTime}}</td>
-					<td>{{item.city}}</td>
-					<td>{{item.eval}}</td>
+					<td>{{item.index | isNull}}</td>
+					<td>{{item.start | isNull}}</td>
+					<td>{{item.end | isNull}}</td>
+					<td>{{item.time | isNull}}</td>
+					<td>{{item.dist | isNull}}</td>
+					<td>{{item.conditionTime | isNull}}</td>
+					<td>{{item.city | isNull}}</td>
+					<td>{{item.eval | isNull}}</td>
 					<td>{{item.state}}</td>
-					<td>{{item.stateTime}}</td>
-					<td>{{item.own}}</td>
+					<td>{{item.stateTime | isNull}}</td>
+					<td>{{item.own | isNull}}</td>
 					<td>
 						<span v-link="{name:'mainmap',params:{id:item.caseid,type:'getevaroute',taskid:this.$route.params.id}}">查看</span>
 						&nbsp;<span @click="delItem(item.caseid)">删除</span>
@@ -205,7 +205,7 @@ module.exports = {
                     dist:data[i].dis/1000 +'公里',
                     conditionTime:data[i].lktime,
                     city:data[i].city,
-                    eval:data[i].eva!='null'?data[i].eva:'',
+                    eval:data[i].eva,
                     state:data[i].eva!='null'?'已评价':'未评价',
                     stateTime:data[i].etime,
                     own:data[i].own

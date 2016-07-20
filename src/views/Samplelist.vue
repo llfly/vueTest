@@ -47,19 +47,19 @@
 			<tbody>
 				<tr v-for='item in items'>
 					<td><input type="checkbox" v-model="item.checked"></td>
-					<td>{{item.index}}</td>
-					<td>{{item.caseid}}</td>
-					<td>{{item.type}}</td>
-					<td>{{item.start}}</td>
-					<td>{{item.end}}</td>
-					<td>{{item.cost}}</td>
-					<td>{{item.dis}}</td>
-					<td>{{item.lktime}}</td>
-					<td>{{item.eva}}</td>
-					<td>{{item.label}}</td>
-					<td>{{item.city}}</td>
-					<td>{{item.etime}}</td>
-					<td>{{item.own}}</td>
+					<td>{{item.index | isNull}}</td>
+					<td>{{item.caseid | isNull}}</td>
+					<td>{{item.type | isNull}}</td>
+					<td>{{item.start | isNull}}</td>
+					<td>{{item.end | isNull}}</td>
+					<td>{{item.cost | isNull}}</td>
+					<td>{{item.dis | isNull}}</td>
+					<td>{{item.lktime | isNull}}</td>
+					<td>{{item.eva | isNull}}</td>
+					<td>{{item.label | isNull}}</td>
+					<td>{{item.city | isNull}}</td>
+					<td>{{item.etime | isNull}}</td>
+					<td>{{item.own | isNull}}</td>
 					<td>
 						<span v-link="{name:'mainmap',params:{id:item.caseid,type:'dispcase'}}">查看</span>
 						&nbsp;<span @click="delItem(item)">删除</span>
@@ -271,8 +271,8 @@ import API_ROOT from '../store/resources.js';
                     cost:data[i].cost +'分钟',
                     dis:data[i].dis/1000 + '公里',
                     lktime:data[i].lktime,
-                    eva:data[i].eva!='null'?data[i].eva:'',
-                    label:data[i].label!='null'?data[i].label:'',
+                    eva:data[i].eva,
+                    label:data[i].label,
                     city:data[i].city,
                     etime:data[i].etime,
                     own:data[i].own,

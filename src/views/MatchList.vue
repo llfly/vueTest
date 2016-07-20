@@ -50,19 +50,19 @@
             </thead>
             <tbody>
                 <tr v-for='item in items'>
-                    <td>{{item.index}}</td>
-                    <td>{{item.caseid}}</td>
-                    <td>{{item.type}}</td>
-                    <td>{{item.start}}</td>
-                    <td>{{item.end}}</td>
-                    <td>{{item.match}}</td>
-                    <td>{{item.eva}}</td>
-                    <td>{{item.label}}</td>
-                    <td>{{item.reva}}</td>
+                    <td>{{item.index | isNull}}</td>
+                    <td>{{item.caseid | isNull}}</td>
+                    <td>{{item.type | isNull}}</td>
+                    <td>{{item.start | isNull}}</td>
+                    <td>{{item.end | isNull}}</td>
+                    <td>{{item.match | isNull}}</td>
+                    <td>{{item.eva | isNull}}</td>
+                    <td>{{item.label | isNull}}</td>
+                    <td>{{item.reva | isNull}}</td>
                     <td>{{item.neweva}}</td>
-                    <td>{{item.mtime}}</td>
-                    <td>{{item.retime}}</td>
-                    <td>{{item.own}}</td>
+                    <td>{{item.mtime | isNull}}</td>
+                    <td>{{item.retime | isNull}}</td>
+                    <td>{{item.own | isNull}}</td>
                     <td>
                         <span v-link="{name:'mainmap',params:{id:item.caseid,type:'getmatchroute',taskid:this.$route.params.id}}">查看</span>
                         &nbsp;<span @click="delItem(item.caseid)">删除</span>
@@ -302,7 +302,7 @@ module.exports = {
                     eva:data[i].eva,
                     label:data[i].label,
                     reva:data[i].neweva =='null'?'未评':'已评',
-                    neweva:data[i].neweva!='null'?data[i].neweva:'',
+                    neweva:data[i].neweva,
                     mtime:data[i].mtime,
                     retime:data[i].retime,
                     own:data[i].own,

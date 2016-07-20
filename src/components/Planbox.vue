@@ -14,7 +14,7 @@
 		</div>
 		<div class="plan-opt">
 			<span v-show="reBest" @click='bestPlanShow()' v-text="isBestPlan?'取消最佳':'设为最佳'"></span>
-			<span v-show="ishide" @click='hidePlan()'>隐藏</span>
+			<span v-show="ishide" @click.stop='hidePlan()'>隐藏</span>
 			<span v-show="isDel"  @click="delPlan()">删除</span>
 		</div>
 		<span class="plan-btn" @click='evaShow()' v-show="evaBtn" v-text="isEva?'重新评价':'评价'"></span>
@@ -161,12 +161,12 @@
 			//隐藏按钮 显示隐藏
 			ishide:function(){
 				if(this.planType == 'getevaroute'){
-					if(this.type == '世纪高通' || this.type == '全程畅通'){
+					if(this.type == '世纪高通' || this.type == '全程畅通'||this.type == '老自定义'){
 						return true;
 					}
 				}
 				if(this.planType == 'getmatchroute'){
-					if(this.type == '线上方案' || this.type == '世纪高通' || this.type == '全程畅通'||this.type == '历史不合理'){
+					if(this.type == '线上方案' || this.type == '世纪高通' || this.type == '全程畅通'||this.type == '历史不合理'||this.type == '老自定义'){
 						return true;
 					}
 				}

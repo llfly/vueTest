@@ -22,6 +22,14 @@ var router = new Router({
 	//history:true
 })
 
+
+Vue.filter('isNull',function(value){
+	if(value == null || value == 'null'){
+		return "";
+	}else{
+		return value;
+	}
+});
 router.map({
 	'/':{
 		component:Tasklist

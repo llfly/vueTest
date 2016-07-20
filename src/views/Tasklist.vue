@@ -33,15 +33,15 @@
 			<tbody>
 				<tr v-for='item in items'>
 					<td><input type="checkbox" v-model="item.checked"/></td>
-					<td>{{item.index}}</td>
-					<td>{{item.type}}</td>
-					<td>{{item.name}}</td>
-					<td>{{item.pharse}}</td>
-					<td>{{item.totalnum}}</td>
-					<td>{{item.restnum}}</td>
-					<td>{{item.ctime}}</td>
-					<td>{{item.etime}}</td>
-					<td>{{item.own}}</td>
+					<td>{{item.index | isNull}}</td>
+					<td>{{item.type | isNull}}</td>
+					<td>{{item.name | isNull}}</td>
+					<td>{{item.pharse | isNull}}</td>
+					<td>{{item.totalnum | isNull}}</td>
+					<td>{{item.restnum | isNull}}</td>
+					<td>{{item.ctime | isNull}}</td>
+					<td>{{item.etime | isNull}}</td>
+					<td>{{item.own | isNull}}</td>
 					<td>
 						<span v-if="item.type == '匹配校验'" v-link="{name:'matchList',params:{id:item.taskid}}">查看</span>
 						<span v-else v-link="{name:'artificial',params:{id:item.taskid}}">查看</span>
